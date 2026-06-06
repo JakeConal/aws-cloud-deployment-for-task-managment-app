@@ -1,48 +1,132 @@
 \section{Kiến trúc hệ thống}
 
-\subsection{Luồng dữ liệu}
+\subsection{Sơ đồ kiến trúc}
 
-Hệ thống xử lý dữ liệu theo quy trình sau:
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.9\textwidth}{\centering TODO: Chèn sơ đồ kiến trúc hệ thống tại đây. Bản ASCII tham khảo nằm trong file \texttt{ARCHITECTURE\_ASCII.txt}.}}
+    \caption{Sơ đồ kiến trúc serverless của ứng dụng Task Manager}
+\end{figure}
 
-\begin{enumerate}
-    \item \textbf{Tạo dữ liệu hoạt động}: File \texttt{log\_simulator.py} tạo ra các sự kiện hoạt động tổng hợp của website, mô phỏng hành vi người dùng thực tế như xem sản phẩm, thêm vào giỏ hàng, và phản hồi.
-    
-    \item \textbf{Nhận sự kiện}: Pub/Sub nhận từng sự kiện và lưu trữ tạm thời cho đến khi có consumer sẵn sàng xử lý. Điều này đảm bảo không có sự kiện nào bị mất trong quá trình truyền tải.
-    
-    \item \textbf{Kích hoạt xử lý}: Cloud Function được kích hoạt tự động khi một pesan mới xuất hiện trong Pub/Sub, bắt đầu quy trình xử lý dữ liệu.
-    
-    \item \textbf{Phân tích cảm xúc}: Hàm kiểm tra xem sự kiện có chứa phản hồi của người dùng hay không. Nếu cần phân tích cảm xúc, nó gửi dữ liệu tới Natural Language API để xác định độ tích cực/tiêu cực của phản hồi.
-    
-    \item \textbf{Lưu trữ dữ liệu}: Hàm thêm điểm cảm xúc vào bản ghi và ghi toàn bộ dữ liệu vào BigQuery, tạo thành một kho dữ liệu trung tâm cho tất cả các hoạt động.
-    
-    \item \textbf{Huấn luyện mô hình}: BigQuery ML đọc bảng dữ liệu được lưu trữ và sử dụng nó để huấn luyện mô hình dự đoán mua hàng (\texttt{purchase\_prediction}), giúp dự đoán hành vi của khách hàng.
-    
-    \item \textbf{Trực quan hóa dữ liệu}: Looker Studio đọc cùng một bảng dữ liệu từ BigQuery để xây dựng các biểu đồ và bảng thông tin tương tác, cung cấp cái nhìn sâu sắc về các xu hướng và mẫu hoạt động.
-\end{enumerate}
+\subsection{Các thành phần chính}
 
-Quy trình này tạo thành một vòng lặp liên tục, cho phép hệ thống vừa xử lý dữ liệu thời gian thực vừa tích lũy kiến thức từ dữ liệu lịch sử để cải thiện độ chính xác của dự đoán.
-
-\subsection{Vai trò các thành phần}
-
-\begin{table}[t]
+\begin{table}[H]
 \centering
-\begin{tabular}{|p{3.5cm}|p{9cm}|}
+\begin{tabular}{|p{4cm}|p{9cm}|}
 \hline
 \textbf{Thành phần} & \textbf{Vai trò} \\
 \hline
-\texttt{log\_simulator.py} & Tạo ra các bản ghi hoạt động giả lập. Là nguồn gốc của pipeline, mô phỏng hành vi người dùng thực tế (xem sản phẩm, thêm vào giỏ hàng, để lại phản hồi). \\
+Amazon S3 & Lưu trữ các file frontend. Bucket được đặt private, bật toàn bộ Block Public Access và không bật Static Website Hosting. \\
 \hline
-Pub/Sub & Hàng đợi tin nhắn bất đồng bộ giữa bộ mô phỏng và bộ xử lý. Đảm bảo không có tin nhắn nào bị mất khi hàm xử lý đang bận. \\
+Amazon CloudFront & CDN duy nhất phục vụ frontend cho người dùng. CloudFront lấy file từ S3 thông qua OAC. \\
 \hline
-Cloud Function & Xử lý từng tin nhắn khi nó đến. Làm sạch dữ liệu, gọi các dịch vụ AI khi cần, và chuẩn bị bản ghi để lưu trữ. \\
+Origin Access Control & Cho phép CloudFront truy cập S3 private bucket một cách an toàn, không cần public bucket. \\
 \hline
-Natural Language API & Dịch vụ phân tích văn bản dựa trên AI. Chuyển đổi văn bản phản hồi người dùng thành điểm cảm xúc (sentiment score). \\
+Amazon Cognito & Quản lý đăng ký, đăng nhập và phát hành JWT token cho frontend. \\
 \hline
-BigQuery & Kho lưu trữ dữ liệu trung tâm. Lưu các bản ghi hoạt động đã được làm giàu dữ liệu trong bảng \texttt{analytics\_ds.website\_logs}. \\
+API Gateway REST API & Cung cấp HTTPS endpoint, định tuyến request đến Lambda, kiểm tra JWT bằng Cognito Authorizer và áp dụng throttling. \\
 \hline
-BigQuery ML & Huấn luyện mô hình học máy trực tiếp bên trong BigQuery. Sử dụng dữ liệu lưu trữ để dự đoán hành vi mua hàng của khách hàng. \\
+AWS Lambda & Chạy backend serverless bằng Node.js 20.x. Bốn Lambda function tách riêng tương ứng với bốn thao tác CRUD. \\
 \hline
-Looker Studio & Trực quan hóa dữ liệu. Kết nối với BigQuery để hiển thị dữ liệu dưới dạng biểu đồ, bảng thông tin, và báo cáo dễ đọc. \\
+Amazon VPC & Cô lập tầng compute trong custom VPC \texttt{TaskManagerVPC} với hai private subnet. \\
+\hline
+DynamoDB Gateway Endpoint & Định tuyến traffic từ Lambda đến DynamoDB qua AWS private backbone, không cần NAT Gateway. \\
+\hline
+Amazon DynamoDB & Lưu trữ dữ liệu công việc trong bảng \texttt{TasksTable}, có GSI \texttt{userId-index}. \\
+\hline
+IAM & Cấp quyền least privilege bằng các role riêng cho từng Lambda function. \\
+\hline
+CloudWatch, SNS, AWS Budget & Giám sát metric, log, cảnh báo lỗi qua email và kiểm soát chi phí hàng tháng. \\
 \hline
 \end{tabular}
+\caption{Vai trò của các dịch vụ AWS trong hệ thống}
 \end{table}
+
+\subsection{Resource chính}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{8cm}|}
+\hline
+\textbf{Loại resource} & \textbf{Tên đã sử dụng} \\
+\hline
+VPC & \texttt{TaskManagerVPC} \\
+\hline
+Private subnet AZ-1 & \texttt{PrivateSubnet-AZ1}, CIDR \texttt{10.0.1.0/24}, AZ \texttt{ap-southeast-1a} \\
+\hline
+Private subnet AZ-2 & \texttt{PrivateSubnet-AZ2}, CIDR \texttt{10.0.2.0/24}, AZ \texttt{ap-southeast-1b} \\
+\hline
+Security group & \texttt{LambdaSecurityGroup} \\
+\hline
+DynamoDB table & \texttt{TasksTable} \\
+\hline
+DynamoDB GSI & \texttt{userId-index} \\
+\hline
+Cognito User Pool & \texttt{TaskManagerUserPool} \\
+\hline
+Cognito App Client & \texttt{WebAppClient} \\
+\hline
+API Gateway REST API & \texttt{TaskManagerAPI} \\
+\hline
+CloudWatch Dashboard & \texttt{TaskManager-Dashboard} \\
+\hline
+AWS Budget & \texttt{TaskManager-Budget-0.01} \\
+\hline
+\end{tabular}
+\caption{Các resource chính của hệ thống}
+\end{table}
+
+\subsection{Luồng request}
+
+Khi người dùng mở ứng dụng, trình duyệt truy cập CloudFront domain. Nếu các file tĩnh như \texttt{index.html}, CSS và JavaScript đã có trong cache, CloudFront trả về trực tiếp từ edge location. Nếu cache miss, CloudFront lấy object từ S3 private bucket thông qua OAC. S3 bucket không public nên truy cập trực tiếp đến URL S3 sẽ bị từ chối.
+
+Luồng tạo công việc sau khi người dùng đăng nhập:
+
+\begin{enumerate}
+    \item Người dùng đăng nhập bằng Cognito và nhận JWT token.
+    \item Frontend gửi request HTTPS đến API Gateway endpoint \texttt{/tasks}, kèm header \texttt{Authorization}.
+    \item API Gateway dùng Cognito Authorizer để xác thực JWT token.
+    \item Nếu token hợp lệ, API Gateway gọi Lambda function tương ứng.
+    \item Lambda function chạy trong private subnet của \texttt{TaskManagerVPC}.
+    \item Lambda gửi request đến DynamoDB qua route table có destination là DynamoDB prefix list và target là VPC endpoint.
+    \item DynamoDB ghi hoặc đọc dữ liệu trong \texttt{TasksTable}.
+    \item Lambda trả JSON response về API Gateway, sau đó API Gateway trả kết quả về trình duyệt.
+\end{enumerate}
+
+\subsection{Tự mở rộng serverless}
+
+Hệ thống không cần Application Load Balancer vì API Gateway đã đóng vai trò entry point HTTPS và định tuyến request đến Lambda. Khi có nhiều request đồng thời, Lambda tự động tạo thêm execution environment để xử lý song song. Khi không có request, Lambda có thể giảm về không instance đang chạy, giúp giảm chi phí vận hành.
+
+Để tránh runaway cost và bảo vệ giới hạn Free Tier, reserved concurrency được cấu hình như sau:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{3cm}|p{5cm}|}
+\hline
+\textbf{Lambda function} & \textbf{Reserved concurrency} & \textbf{Lý do} \\
+\hline
+\texttt{GetTasksFunction} & 5 & Cho phép nhiều request đọc danh sách song song trong demo. \\
+\hline
+\texttt{CreateTaskFunction} & 2 & Giới hạn thao tác ghi mới để kiểm soát chi phí và lỗi lặp request. \\
+\hline
+\texttt{UpdateTaskFunction} & 2 & Đủ cho demo cập nhật đồng thời, vẫn giới hạn mức ghi. \\
+\hline
+\texttt{DeleteTaskFunction} & 1 & Xóa task là thao tác ít dùng hơn và nên được giới hạn chặt. \\
+\hline
+\end{tabular}
+\caption{Reserved concurrency của các Lambda function}
+\end{table}
+
+Nếu reserved concurrency đặt quá thấp, người dùng có thể gặp throttling dù hệ thống vẫn còn khả năng xử lý. Nếu đặt quá cao, lỗi vòng lặp hoặc lượng request bất thường có thể tạo nhiều invocation và làm tăng chi phí.
+
+\subsection{CDN và Origin Access Control}
+
+CloudFront giúp giảm độ trễ bằng cách cache static assets tại edge location gần người dùng. Khi cache hit, CloudFront trả nội dung mà không cần truy cập lại S3. Khi cache miss, CloudFront lấy nội dung từ origin là S3 bucket.
+
+S3 bucket bắt buộc private vì frontend không được truy cập qua URL S3 trực tiếp. Origin Access Control là cơ chế cho phép CloudFront ký request đến S3 và bucket policy chỉ cho phép CloudFront service principal đọc object từ distribution hợp lệ. Nhờ đó, CloudFront là public entry point duy nhất của frontend.
+
+\subsection{VPC Endpoint}
+
+Lambda được gắn VpcConfig vào hai private subnet để backend chạy trong mạng riêng. Vì private subnet không có NAT Gateway, Lambda không thể gọi DynamoDB qua internet công cộng. DynamoDB Gateway Endpoint giải quyết vấn đề này bằng cách thêm route đến DynamoDB prefix list trong route table của private subnet.
+
+Traffic từ Lambda đến DynamoDB đi qua AWS private backbone theo đường: Lambda trong private subnet $\rightarrow$ route table $\rightarrow$ DynamoDB Gateway Endpoint $\rightarrow$ DynamoDB. Cách này an toàn hơn và không phát sinh chi phí cố định như NAT Gateway.

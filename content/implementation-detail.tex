@@ -1,219 +1,148 @@
 \section{Chi tiết triển khai}
 
-\subsection{Giai đoạn 1: Bảo mật và Cấu hình Môi trường}
+\subsection{Frontend}
 
-Bước đầu tiên là chuẩn bị môi trường Google Cloud để pipeline có thể chạy một cách an toàn. Chúng em tạo một dự án riêng biệt, kích hoạt các API cần thiết, và tạo một tài khoản dịch vụ có tên \texttt{cloud-function-sa} cho hàm được triển khai.
+Frontend được xây dựng bằng HTML, CSS và JavaScript. Ứng dụng cung cấp giao diện đăng ký, đăng nhập, danh sách công việc, form tạo công việc và các thao tác cập nhật, xóa, lọc theo mức độ ưu tiên hoặc ngày hết hạn.
 
-Các API sau được bật cho dự án:
+Sau khi đăng nhập thành công qua Cognito, frontend lưu JWT token và gửi token này trong header \texttt{Authorization} cho mọi request đến API \texttt{/tasks}. CORS được cấu hình chỉ cho phép origin là CloudFront domain của ứng dụng, không sử dụng wildcard \texttt{*}.
 
-\begin{itemize}
-    \item Cloud Pub/Sub API
-    \item Cloud Functions API
-    \item BigQuery API
-    \item Cloud Natural Language API
-\end{itemize}
+\subsection{Lưu trữ frontend bằng S3 và CloudFront}
 
-Các vai trò chính được gán cho tài khoản dịch vụ \texttt{cloud-function-sa} là:
+S3 bucket frontend có dạng \texttt{taskmanager-ui-<unique-id>}. Bucket được cấu hình:
 
 \begin{itemize}
-    \item \textbf{Pub/Sub Subscriber} --- cho phép hàm nhận sự kiện từ trigger Pub/Sub
-    \item \textbf{BigQuery Data Editor} --- cho phép hàm chèn các bản ghi được làm giàu dữ liệu vào \texttt{analytics\_ds.website\_logs}
-    \item \textbf{Cloud Functions Invoker} --- cho phép hàm chạy trong môi trường triển khai
-    \item \textbf{Cloud Natural Language API User} --- cho phép truy cập API phân tích cảm xúc nếu cần thiết trong quá trình triển khai hoặc chạy
+    \item Bật cả bốn tùy chọn Block Public Access.
+    \item Không bật Static Website Hosting.
+    \item Không cho phép truy cập object trực tiếp qua URL S3.
+    \item Bucket policy chỉ cho phép CloudFront service principal đọc object thông qua OAC.
 \end{itemize}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{img/phase-1-service-account.jpeg}
-    \caption{Tài khoản dịch vụ \texttt{cloud-function-sa}}
-\end{figure}
+CloudFront distribution được tạo với S3 bucket làm origin, bật Origin Access Control và đặt default root object là \texttt{index.html}. Người dùng chỉ truy cập frontend qua CloudFront domain của ứng dụng.
 
-\subsection{Giai đoạn 2: Nhập liệu dữ liệu với Pub/Sub}
+\subsection{Backend API}
 
-Chúng em tạo Pub/Sub topic \texttt{website-logs} và subscription \texttt{website-logs-sub} trong Google Cloud Console. Những thành phần này tạo thành tầng nhập liệu cho pipeline.
+Backend sử dụng Node.js 20.x trên AWS Lambda. Mỗi chức năng CRUD được triển khai thành một Lambda function riêng, có IAM role riêng và được map với một endpoint tương ứng trong API Gateway REST API.
 
-\subsubsection*{Tạo topic và subscription}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{2.2cm}|p{3cm}|p{4cm}|p{4cm}|}
+\hline
+\textbf{Method} & \textbf{Path} & \textbf{Lambda function} & \textbf{Chức năng} \\
+\hline
+GET & \texttt{/tasks} & \texttt{GetTasksFunction} & Lấy danh sách công việc của user từ DynamoDB. \\
+\hline
+POST & \texttt{/tasks} & \texttt{CreateTaskFunction} & Tạo công việc mới và ghi vào DynamoDB. \\
+\hline
+PUT & \texttt{/tasks/\{id\}} & \texttt{UpdateTaskFunction} & Cập nhật công việc theo \texttt{taskId}. \\
+\hline
+DELETE & \texttt{/tasks/\{id\}} & \texttt{DeleteTaskFunction} & Xóa công việc theo \texttt{taskId}. \\
+\hline
+\end{tabular}
+\caption{Các endpoint backend API}
+\end{table}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{img/phase-2-pubsub-topic.jpeg}
-    \caption{Pub/Sub topic \texttt{website-logs}}
-\end{figure}
+Tất cả Lambda function đều stateless. Mỗi request được xử lý độc lập, dữ liệu bền vững được lưu trong DynamoDB thay vì lưu trong bộ nhớ Lambda.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{img/phase-2-pubsub-subcription.jpeg}
-    \caption{Pub/Sub subscription \texttt{website-logs-sub}}
-\end{figure}
+\subsection{DynamoDB}
 
-\subsubsection*{Tạo log simulator}
+Bảng DynamoDB \texttt{TasksTable} lưu dữ liệu công việc với schema chính như sau:
 
-Chúng em tạo file \texttt{log\_simulator.py} trong Cloud Shell tạo ra các sự kiện website tổng hợp với các trường: \texttt{timestamp}, \texttt{user\_id}, \texttt{action}, \texttt{page}, \texttt{response\_time\_ms}, và tùy chọn \texttt{feedback} (khả năng 30\%). Script sử dụng Google Cloud Pub/Sub client library, được cài đặt qua:
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{3cm}|p{5cm}|}
+\hline
+\textbf{Thuộc tính} & \textbf{Kiểu} & \textbf{Vai trò} & \textbf{Mô tả} \\
+\hline
+\texttt{taskId} & String & Partition key & UUID của công việc. \\
+\hline
+\texttt{userId} & String & GSI partition key & ID người dùng sở hữu công việc. \\
+\hline
+\texttt{title} & String & Attribute & Tiêu đề công việc. \\
+\hline
+\texttt{description} & String & Attribute & Mô tả chi tiết, có thể để trống. \\
+\hline
+\texttt{priority} & String & Attribute & \texttt{low}, \texttt{medium} hoặc \texttt{high}. \\
+\hline
+\texttt{dueDate} & String & Attribute & Ngày hết hạn theo định dạng ISO. \\
+\hline
+\texttt{status} & String & Attribute & \texttt{pending} hoặc \texttt{done}. \\
+\hline
+\texttt{createdAt} & String & Attribute & Thời điểm tạo task theo ISO timestamp. \\
+\hline
+\end{tabular}
+\caption{Schema của bảng \texttt{TasksTable}}
+\end{table}
 
-\begin{lstlisting}[language=bash, frame=none]
-pip install google-cloud-pubsub
-\end{lstlisting}
+Global Secondary Index \texttt{userId-index} có partition key là \texttt{userId} và projection là \texttt{ALL}. GSI này cho phép Lambda truy vấn nhanh toàn bộ công việc của một user mà không cần scan toàn bảng.
 
-\subsubsection*{Chạy simulator}
+Hệ thống cũng chuẩn bị ít nhất hai user hoặc hai bộ dữ liệu demo tương ứng với hai giá trị \texttt{userId} khác nhau để phục vụ kiểm thử và bảo vệ.
 
-Chúng em đã chạy simulator trong Cloud Shell:
+\subsection{IAM Least Privilege}
 
-\begin{lstlisting}[language=bash, frame=none]
-python log_simulator.py
-\end{lstlisting}
+Mỗi Lambda function sử dụng một IAM role riêng:
 
-Simulator đã xuất bản tin nhắn liên tục. Chúng em đã xác minh dữ liệu đang chảy bằng cách kéo tin nhắn từ subscription \texttt{website-logs-sub} trong Pub/Sub console và xác nhận tất cả các trường đều có mặt và được định dạng chính xác.
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{5cm}|p{4cm}|}
+\hline
+\textbf{Lambda function} & \textbf{IAM role} & \textbf{Quyền chính} \\
+\hline
+\texttt{GetTasksFunction} & \texttt{GetTasksLambdaRole} & Logs, VPC ENI, DynamoDB table/index ARN. \\
+\hline
+\texttt{CreateTaskFunction} & \texttt{CreateTaskLambdaRole} & Logs, VPC ENI, DynamoDB table/index ARN. \\
+\hline
+\texttt{UpdateTaskFunction} & \texttt{UpdateTaskLambdaRole} & Logs, VPC ENI, DynamoDB table/index ARN. \\
+\hline
+\texttt{DeleteTaskFunction} & \texttt{DeleteTaskLambdaRole} & Logs, VPC ENI, DynamoDB table/index ARN. \\
+\hline
+\end{tabular}
+\caption{Mapping giữa Lambda function và IAM role}
+\end{table}
 
-\subsection{Giai đoạn 3: Xử lý với Cloud Functions và AI}
+Các policy DynamoDB không dùng resource wildcard \texttt{*}. Resource được giới hạn vào ARN cụ thể của bảng \texttt{TasksTable} và index \texttt{userId-index}. Các quyền EC2 như \texttt{CreateNetworkInterface}, \texttt{DescribeNetworkInterfaces} và \texttt{DeleteNetworkInterface} được cấp vì Lambda cần tạo ENI khi gắn vào VPC.
 
-Ở giai đoạn này, chúng em triển khai tầng xử lý dưới dạng dịch vụ Cloud Function có tên \texttt{process-website-logs} và kết nối với Pub/Sub để mỗi tin nhắn mới từ \texttt{website-logs} sẽ tự động kích hoạt xử lý.
+\subsection{API Gateway và Cognito}
 
-Quy trình thiết lập được thực hiện theo các bước sau:
+API Gateway được tạo dưới dạng REST API tên \texttt{TaskManagerAPI} và deploy ở stage \texttt{prod}. Tất cả endpoint \texttt{/tasks} được bảo vệ bằng Cognito Authorizer liên kết với \texttt{TaskManagerUserPool}. Token source là header \texttt{Authorization}.
 
-\begin{enumerate}
-    \item Mở Cloud Run functions từ khu vực Cloud Functions trong Google Cloud Console.
-    \item Tạo một Python function bằng inline editor.
-    \item Thiết lập cấu hình dịch vụ cốt lõi:
-    \begin{itemize}
-        \item Service name: \texttt{process-website-logs}
-        \item Runtime: Python (phiên bản mới nhất có trong console)
-        \item Billing mode: Request-based
-        \item Minimum instances: 0
-    \end{itemize}
-    \item Cấu hình trigger trong Eventarc Trigger:
-    \begin{itemize}
-        \item Event provider: Cloud Pub/Sub
-        \item Event type: \texttt{google.cloud.pubsub.topic.v1.messagePublished}
-        \item Topic: \texttt{website-logs}
-        \item Region: cùng region với function khi có thể
-    \end{itemize}
-    \item Cập nhật thiết lập bảo mật runtime:
-    \begin{itemize}
-        \item Runtime service account: \texttt{cloud-function-sa}
-        \item Function entry point: \texttt{process\_log}
-    \end{itemize}
-\end{enumerate}
-
-Sau khi hoàn tất phần cấu hình, chúng em cập nhật mã nguồn trong inline editor:
+Các giá trị throttling tại stage \texttt{prod}:
 
 \begin{itemize}
-    \item \texttt{main.py}: nhận dữ liệu Pub/Sub, làm giàu sentiment bằng Natural Language API, và ghi dữ liệu đã làm giàu vào BigQuery.
-    \item \texttt{requirements.txt}: khai báo các thư viện phụ thuộc cần khi deploy.
+    \item Rate limit: 100 request/giây.
+    \item Burst limit: 50 request.
 \end{itemize}
 
-\begin{lstlisting}[frame=none]
-functions-framework==3.*
-google-cloud-bigquery==3.21.0
-google-cloud-language==2.13.0
-\end{lstlisting}
+Các request không có JWT token hợp lệ sẽ nhận \texttt{401 Unauthorized}. Request có token hợp lệ sẽ được API Gateway chuyển tiếp đến Lambda tương ứng.
 
-Tiếp theo, chúng em deploy function và kiểm tra deployment trong logs. Một lần chạy thành công cho thấy các bản ghi được xử lý và chèn vào \texttt{analytics\_ds.website\_logs}, xác nhận Giai đoạn 3 đã hoàn tất và sẵn sàng cho các bước phân tích downstream.
+\subsection{Mạng riêng và security group}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{img/phase-3-cloud-function.jpeg}
-    \caption{Quá trình bản ghi được xử lý bởi Cloud Function \texttt{process-website-logs}}
-\end{figure}
+Custom VPC \texttt{TaskManagerVPC} có CIDR \texttt{10.0.0.0/16}. Hai private subnet được tạo ở hai Availability Zone:
 
-\subsection{Giai đoạn 4: Phân tích với BigQuery và BigQuery ML}
+\begin{itemize}
+    \item \texttt{PrivateSubnet-AZ1}: \texttt{10.0.1.0/24}, \texttt{ap-southeast-1a}.
+    \item \texttt{PrivateSubnet-AZ2}: \texttt{10.0.2.0/24}, \texttt{ap-southeast-1b}.
+\end{itemize}
 
-Chúng em tạo BigQuery dataset \texttt{analytics\_ds} và bảng \texttt{website\_logs} để lưu dữ liệu đã làm giàu từ Cloud Function. Schema của bảng được khai báo như sau:
+Bốn Lambda function đều được gắn vào hai private subnet này và security group \texttt{LambdaSecurityGroup}. Outbound rule của security group chỉ cho phép HTTPS port 443 đến DynamoDB managed prefix list trong region \texttt{ap-southeast-1}. Route table của private subnet có dòng route từ DynamoDB prefix list đến VPC endpoint.
 
-\begin{lstlisting}[frame=none]
-[
-    { "name": "timestamp", "type": "TIMESTAMP", "mode": "NULLABLE" },
-    { "name": "user_id", "type": "STRING", "mode": "NULLABLE" },
-    { "name": "action", "type": "STRING", "mode": "NULLABLE" },
-    { "name": "page", "type": "STRING", "mode": "NULLABLE" },
-    { "name": "response_time_ms", "type": "INTEGER", "mode": "NULLABLE" },
-    { "name": "feedback", "type": "STRING", "mode": "NULLABLE" },
-    { "name": "sentiment_score", "type": "FLOAT", "mode": "NULLABLE" },
-    { "name": "processed_at", "type": "TIMESTAMP", "mode": "NULLABLE" }
-]
-\end{lstlisting}
+\subsection{Giám sát và kiểm soát chi phí}
 
-Sau khi bảng có đủ dữ liệu, chúng em huấn luyện mô hình logistic regression trong BigQuery ML với tên \texttt{purchase\_prediction}. Câu lệnh SQL dùng để huấn luyện mô hình như sau:
+CloudWatch Dashboard \texttt{TaskManager-Dashboard} được tạo với các widget:
 
-\begin{lstlisting}[language=SQL, frame=none]
-CREATE OR REPLACE MODEL `analytics_ds.purchase_prediction`
-OPTIONS(
-    model_type='logistic_reg',
-    input_label_cols=['is_purchase'],
-    auto_class_weights=TRUE
-) AS
-SELECT
-    IF(action='purchase',1,0) AS is_purchase,
-    sentiment_score,
-    response_time_ms
-FROM `analytics_ds.website_logs`
-WHERE sentiment_score IS NOT NULL;
-\end{lstlisting}
+\begin{itemize}
+    \item Lambda Invocations.
+    \item Lambda Duration P50/P99.
+    \item Lambda Errors.
+    \item Lambda Throttles.
+    \item API Gateway Latency.
+    \item API Gateway 4XXError và 5XXError.
+\end{itemize}
 
-Truy vấn trên sử dụng \texttt{action} để tạo nhãn \texttt{is\_purchase}, sau đó huấn luyện mô hình với hai đặc trưng đầu vào là \texttt{sentiment\_score} và \texttt{response\_time\_ms}.
+Hai CloudWatch alarm bắt buộc:
 
-\subsection{Giai đoạn 5: Trực quan hóa dữ liệu với Looker Studio}
+\begin{itemize}
+    \item \texttt{Lambda-Error-Alarm}: Lambda Errors lớn hơn 10 trong 5 phút, gửi email qua SNS.
+    \item \texttt{API-5xx-Alarm}: API Gateway 5XXError lớn hơn 5 trong 5 phút, gửi email qua SNS.
+\end{itemize}
 
-Giai đoạn cuối cùng của pipeline là trực quan hóa kết quả phân tích. Chúng em kết nối Looker Studio trực tiếp với bảng \texttt{analytics\_ds.website\_logs} để xây dựng một dashboard thương mại tương tác.
-
-\subsubsection*{Kết nối Looker Studio và BigQuery}
-
-\begin{enumerate}
-    \item Truy cập Looker Studio (looker.studio)
-    \item Tạo một báo cáo mới (New Report)
-    \item Chọn BigQuery làm nguồn dữ liệu
-    \item Chọn dự án GCP, dataset \texttt{analytics\_ds} và bảng \texttt{website\_logs}
-    \item Xác nhận kết nối
-\end{enumerate}
-
-\subsubsection*{Xây dựng các biểu đồ chính}
-
-Chúng em xây dựng ba biểu đồ chính để trình bày thông tin kinh doanh quan trọng:
-
-\begin{enumerate}
-    \item \textbf{Biểu đồ Gauge (Sentiment Trung Bình)}
-    \begin{itemize}
-        \item Loại: Gauge (thước đo)
-        \item Số liệu: Giá trị trung bình của \texttt{sentiment\_score}
-        \item Mục đích: Hiển thị độ hài lòng chung của khách hàng
-        \item Các bước thực hiện:
-        \begin{itemize}
-            \item Thêm một biểu đồ Gauge vào dashboard
-            \item Chọn trường \texttt{sentiment\_score} làm số liệu
-            \item Cấu hình phạm vi hiển thị từ 0 đến 1
-            \item Chọn phép tính AVG cho \texttt{sentiment\_score} 
-        \end{itemize}
-        
-    \end{itemize}
-    \item \textbf{Biểu đồ Chuỗi Thời Gian (Lưu lượng theo Giờ)}
-    \begin{itemize}
-        \item Loại: Time series (đường biểu đồ)
-        \item Trục X: Thời gian (timestamp)
-        \item Trục Y: Số lượng sự kiện
-        \item Mục đích: Cho thấy xu hướng lưu lượng truy cập theo thời gian
-        \item Các bước thực hiện:
-        \begin{itemize}
-            \item Thêm một biểu đồ  chuỗi thời gian vào dashboard
-            \item Chọn trường \texttt{timestamp} làm trục X và đếm số lượng sự kiện làm trục Y
-            \item Cấu hình để trục X nhóm theo giờ
-        \end{itemize}
-    \end{itemize}
-    
-    \item \textbf{Biểu đồ Tròn (Phân bố Hành động)}
-    \begin{itemize}
-        \item Loại: Pie chart (biểu đồ tròn)
-        \item Dữ liệu: Số lượng từng loại hành động (\texttt{action})
-        \item Mục đích: So sánh tỷ lệ các hành động người dùng
-        \item Các bước thực hiện:
-        \begin{itemize}
-            \item Thêm một biểu đồ tròn vào dashboard
-            \item Chọn trường \texttt{action} làm phân loại và đếm số lượng sự kiện làm giá trị
-            \item Cấu hình để hiển thị tỷ lệ phần trăm cho mỗi loại hành động
-        \end{itemize}
-    \end{itemize}
-\end{enumerate}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{img/phase-5-looker-dashboard.png}
-    \caption{Tổng quan dashboard Looker Studio với ba biểu đồ chính và các bộ lọc}
-\end{figure}
+AWS Budget \texttt{TaskManager-Budget-0.01} được cấu hình với giới hạn 0.01 USD/tháng, cảnh báo tại 80\% tương ứng 0.008 USD và 100\% tương ứng 0.01 USD.

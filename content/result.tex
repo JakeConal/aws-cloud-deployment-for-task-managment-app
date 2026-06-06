@@ -1,175 +1,209 @@
-\section{Kết quả}
+\section{Kết quả và bằng chứng}
 
-\subsection{Thống kê tổng quan}
+\subsection{Kết quả chức năng}
 
-Sau khi chạy pipeline hoàn chỉnh với dữ liệu mô phỏng, hệ thống tạo ra các số liệu sau:
+Hệ thống đã triển khai đầy đủ các chức năng chính của ứng dụng Task Manager:
+
+\begin{itemize}
+    \item Người dùng có thể đăng ký và đăng nhập bằng Cognito.
+    \item Frontend truy cập được qua CloudFront.
+    \item Direct S3 URL bị từ chối, chứng minh S3 bucket không public.
+    \item Bốn endpoint CRUD hoạt động qua API Gateway REST API.
+    \item API yêu cầu JWT token hợp lệ cho các endpoint \texttt{/tasks}.
+    \item Dữ liệu công việc được lưu và truy vấn từ DynamoDB.
+    \item Lambda chạy trong private subnet và truy cập DynamoDB qua VPC Gateway Endpoint.
+\end{itemize}
+
+\subsection{Bảng kiểm thử chức năng}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|}
+\begin{tabular}{|p{3.5cm}|p{4cm}|p{3.5cm}|p{2cm}|}
 \hline
-\textbf{Chỉ số} & \textbf{Giá trị} \\
+\textbf{Test case} & \textbf{Input} & \textbf{Kết quả kỳ vọng} & \textbf{Trạng thái} \\
 \hline
-Tổng số bản ghi xử lý & {\small 2504} \\
+Đăng ký user & Thông tin user mới & Cognito tạo user thành công & TODO \\
 \hline
-Bản ghi có feedback & {\small 771} \\
+Đăng nhập & Username/password hợp lệ & Nhận JWT token & TODO \\
 \hline
-Điểm sentiment trung bình & {\small 0.01} \\
+Tạo task & \texttt{POST /tasks} kèm token & Task được ghi vào DynamoDB & TODO \\
 \hline
-Tỷ lệ hành động mua hàng & {\small 24.9\%} \\
+Lấy danh sách task & \texttt{GET /tasks} kèm token & Trả về JSON danh sách task & TODO \\
+\hline
+Cập nhật task & \texttt{PUT /tasks/\{id\}} & Task được cập nhật & TODO \\
+\hline
+Xóa task & \texttt{DELETE /tasks/\{id\}} & Task bị xóa khỏi DynamoDB & TODO \\
+\hline
+Lọc priority & Chọn priority trên frontend & Danh sách được lọc đúng & TODO \\
+\hline
+Lọc due date & Chọn ngày hết hạn & Danh sách được lọc đúng & TODO \\
+\hline
+API không có token & \texttt{curl} không có header Authorization & Trả về \texttt{401 Unauthorized} & TODO \\
+\hline
+API có token hợp lệ & \texttt{curl} có JWT token & Trả về \texttt{200 OK} & TODO \\
 \hline
 \end{tabular}
-\caption{Thống kê tổng quan dữ liệu sau khi xử lý}
+\caption{Bảng kiểm thử chức năng}
 \end{table}
 
-\subsection{Kết quả đánh giá mô hình BigQuery ML}
-
-Mô hình logistic regression \texttt{purchase\_prediction} được huấn luyện trên dữ liệu đã làm giàu. Kết quả đánh giá mô hình sử dụng \texttt{ML.EVALUATE} như sau:
+\subsection{Bằng chứng bảo mật frontend}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|}
+\begin{tabular}{|p{2cm}|p{7cm}|p{4cm}|}
 \hline
-\textbf{Chỉ số Hiệu Năng} & \textbf{Giá trị} \\
+\textbf{ID} & \textbf{Bằng chứng} & \textbf{File hình/output} \\
 \hline
-Precision & {\small 0.0} \\
+SE-1 & S3 Block Public Access bật cả bốn tùy chọn. & TODO \\
 \hline
-Recall & {\small 0.0} \\
+SE-2 & Truy cập trực tiếp S3 URL trả về \texttt{403 Forbidden} hoặc \texttt{AccessDenied}. & TODO \\
 \hline
-Accuracy & {\small 0.758} \\
+SE-3 & Truy cập CloudFront URL thành công với \texttt{200 OK}. & TODO \\
 \hline
-ROC AUC & {\small 0.552} \\
+SE-4 & CloudFront distribution có Origin Access Control. & TODO \\
 \hline
-F1-Score & {\small 0.0} \\
 \end{tabular}
-\caption{Kết quả đánh giá mô hình dự đoán hành vi mua hàng}
+\caption{Bằng chứng bảo mật frontend}
 \end{table}
 
-Những chỉ số này phản ánh một thực tế quan trọng về tập dữ liệu đầu vào. Với mức ROC AUC chỉ đạt khoảng 0.55 và các chỉ số Precision/Recall ở mức thấp, mô hình hiện tại chưa thể phân loại chính xác hành vi mua hàng. Tuy nhiên, điều này cung cấp những insight kỹ thuật rất giá trị.
-
-\subsection{Quan sát chính từ pipeline và kết luận}
-
-Từ quá trình triển khai và kết quả thu được, chúng em có những nhận xét sau:
-
-\begin{enumerate}
-    \item \textbf{Tính ổn định và hiệu năng của Data Pipeline}
-    
-    Trình mô phỏng tạo ra luồng sự kiện liên tục, Pub/Sub tiếp nhận và định tuyến không mất mát dữ liệu, và Cloud Function xử lý thành công từng tin nhắn.
-    
-    \item \textbf{Chất lượng dữ liệu và Giới hạn của Machine Learning}
-    
-    Sự sụt giảm hiệu năng của mô hình BQML là một minh chứng rõ nét cho nguyên lý "Garbage In, Garbage Out". Qua phân tích mã nguồn mô phỏng, các biến đầu vào (\texttt{response\_time\_ms}, \texttt{feedback}) và biến mục tiêu (\texttt{action}) được sinh ra hoàn toàn ngẫu nhiên và độc lập. Do không có mối tương quan logic thực tế nào tồn tại trong tập dữ liệu thô, thuật toán Logistic Regression không thể tìm ra quy luật phân loại. Điều này bài học lớn về việc chất lượng dữ liệu thu thập quyết định trực tiếp đến sự thành bại của mô hình AI.
-    
-    \item \textbf{Hiệu quả của công cụ trực quan hóa (Looker Studio)}
-    
-    Dashboard Looker Studio đã kết nối trực tiếp với BigQuery và cập nhật theo thời gian thực một cách hiệu quả, tiện lợi:
-    \begin{itemize}
-        \item Lưu lượng truy cập qua các khung giờ hoạt động của trình mô phỏng.
-        \item Phân bố  của các hành động người dùng 
-        \item Thống kê điểm số cảm xúc trung bình (sentiment gauge) toàn cục.
-    \end{itemize}
-    
-    Việc tự động hóa báo cáo này giúp giảm thiểu thao tác thủ công và cung cấp cái nhìn trực quan ngay lập tức cho các bên liên quan.
-\end{enumerate}
-
-\subsection{Hình ảnh minh họa}
-
-Dưới đây là các hình ảnh chính từ quá trình triển khai:
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{img/result-bq-table.png}
-    \caption{Bảng \texttt{website\_logs} trong BigQuery với các bản ghi đã xử lý và trường sentiment\_score}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-        \includegraphics[width=0.85\textwidth]{img/result-bqml-evaluation.png}
-        \caption{Kết quả đánh giá mô hình \texttt{purchase\_prediction} từ \texttt{ML.EVALUATE}}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{img/phase-5-looker-dashboard.png}
-    \caption{Dashboard Looker Studio hiển thị sentiment gauge, traffic time series, và action pie chart}
-\end{figure}
-
-\subsection{Tiêu chí đánh giá}
-
-Bảng dưới đây thể hiện tiêu chí đánh giá của đồ án:
+\subsection{Bằng chứng Cognito và API security}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|p{2.8cm}|p{7.2cm}|c|}
+\begin{tabular}{|p{2cm}|p{7cm}|p{4cm}|}
 \hline
-\textbf{Tiêu chí} & \textbf{Yêu cầu} & \textbf{Điểm} \\
+\textbf{ID} & \textbf{Bằng chứng} & \textbf{File hình/output} \\
 \hline
-Kiến trúc \& Bảo mật & Thiết lập đúng Pub/Sub, IAM Roles, và nguyên tắc Least Privilege access & 20 \\
+CO-1 & Cognito User Pool \texttt{TaskManagerUserPool} đã tạo. & TODO \\
 \hline
-Chức năng Pipeline & Dữ liệu chảy thành công từ Simulator $\to$ BigQuery. Logs được phân tích đúng & 25 \\
+CO-2 & API Gateway Cognito Authorizer đã cấu hình. & TODO \\
 \hline
-Machine Learning (AI) & Cloud Function lấy sentiment scores qua API thành công. BQML model được tạo và huấn luyện & 25 \\
+CO-3 & Gọi API không có token trả về \texttt{401 Unauthorized}. & TODO \\
 \hline
-Trực quan hóa & Dashboard hoạt động, tự động cập nhật, và trực quan hóa rõ ràng dữ liệu \texttt{sentiment\_score} & 20 \\
-\hline
-Báo cáo & Cấu trúc rõ ràng (Giới thiệu, Kiến trúc, Triển khai, Kết quả, Kết luận). Giải thích rõ ràng về kiến trúc, pipeline, ML model. Trình bày chuyên nghiệp, có sơ đồ minh họa. & 10 \\
-\hline
-Member Information \& Assessment & 
-\begin{itemize}
-    \item Nguyễn Minh Hiếu (23120124): 33.3\%.
-    \item Nguyễn Minh Tú (23120101): 33.3\%.
-    \item Nguyễn Xuân Duy (23120121): 33.3\%.
-\end{itemize} & 0 \\
-\hline
-\textbf{Tổng cộng} & & \textbf{100} \\
+CO-4 & Gọi API với token hợp lệ trả về \texttt{200 OK}. & TODO \\
 \hline
 \end{tabular}
-\caption{Tiêu chí đánh giá đồ án Intelligent Cloud-Based Log Analytics \& BI System}
+\caption{Bằng chứng Cognito và API security}
 \end{table}
 
-\clearpage
+\subsection{Bằng chứng networking}
 
-\subsection{AI Tool Usage}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{2cm}|p{7cm}|p{4cm}|}
+\hline
+\textbf{ID} & \textbf{Bằng chứng} & \textbf{File hình/output} \\
+\hline
+NE-1 & DynamoDB Gateway Endpoint có status \texttt{Available}. & TODO \\
+\hline
+NE-2 & Lambda có VpcConfig với private subnets và security group. & TODO \\
+\hline
+NE-3 & Route table có dòng \texttt{pl-xxxxxx -> vpce-xxxxxxxx}. & TODO \\
+\hline
+NE-4 & Không có NAT Gateway đang hoạt động. & TODO \\
+\hline
+NE-5 & CloudWatch log cho thấy Lambda gọi DynamoDB thành công. & TODO \\
+\hline
+\end{tabular}
+\caption{Bằng chứng networking}
+\end{table}
 
-\subsubsection{1. Sửa lỗi hiển thị \texttt{sentiment\_score} trên Looker Studio}
+\subsection{Bằng chứng IAM}
 
-\textbf{1. Các câu lệnh (Prompts) đã sử dụng}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{2cm}|p{7cm}|p{4cm}|}
+\hline
+\textbf{ID} & \textbf{Bằng chứng} & \textbf{File hình/output} \\
+\hline
+IM-1 & Bốn IAM role riêng: \texttt{GetTasksLambdaRole}, \texttt{CreateTaskLambdaRole}, \texttt{UpdateTaskLambdaRole}, \texttt{DeleteTaskLambdaRole}. & TODO \\
+\hline
+IM-2 & Policy JSON dùng ARN cụ thể của \texttt{TasksTable} và \texttt{userId-index}, không dùng resource \texttt{*}. & TODO \\
+\hline
+IM-3 & Mỗi Lambda function gắn đúng IAM role tương ứng. & TODO \\
+\hline
+\end{tabular}
+\caption{Bằng chứng IAM}
+\end{table}
 
-\textit{"Cho tôi cái query trong big query về average sentiment score. Phần chỉ số average sentiment score của tôi trong looker là 0.0 dù đã bật đến số thập phân số 3"}
+\subsection{Giám sát}
 
-\textbf{2. Vấn đề/Lỗi phát sinh (Issues encountered)}
+CloudWatch Dashboard \texttt{TaskManager-Dashboard} đã được tạo với ít nhất năm widget có dữ liệu thực. Hai alarm \texttt{Lambda-Error-Alarm} và \texttt{API-5xx-Alarm} gửi thông báo qua SNS email subscription.
 
-Mặc dù dữ liệu gốc trong BigQuery đã tính toán ra điểm cảm xúc trung bình (\texttt{0.0136}), nhưng biểu đồ Gauge trên Looker Studio liên tục hiển thị \texttt{0,0}. Dù đã tăng giới hạn số dữ liệu sinh ra từ simulator, kết quả hiển thị trên Dashboard vẫn không thay đổi.
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{5cm}|p{3cm}|}
+\hline
+\textbf{Mục} & \textbf{Yêu cầu} & \textbf{Bằng chứng} \\
+\hline
+CloudWatch Dashboard & Tối thiểu 5 widget có dữ liệu thực. & TODO \\
+\hline
+\texttt{Lambda-Error-Alarm} & Errors lớn hơn 10 trong 5 phút. & TODO \\
+\hline
+\texttt{API-5xx-Alarm} & 5XXError lớn hơn 5 trong 5 phút. & TODO \\
+\hline
+Log request thành công & Có \texttt{REPORT}, status \texttt{200}, duration, billed duration, memory used. & TODO \\
+\hline
+Log request lỗi & Có lỗi validation hoặc stack trace khi input không hợp lệ. & TODO \\
+\hline
+\end{tabular}
+\caption{Bằng chứng monitoring và logging}
+\end{table}
 
-\textbf{3. Quá trình phân tích và giải quyết (Troubleshooting \& Resolution)}
+\subsection{Chi phí}
+
+Kiến trúc được thiết kế để giữ chi phí gần bằng 0:
 
 \begin{itemize}
-    \item \textbf{Phân tích đối chiếu:} Thông qua AI, em đã viết câu truy vấn SQL để kiểm tra chéo dữ liệu trực tiếp trong BigQuery. Kết quả \texttt{0.0136} chứng tỏ data pipeline hoạt động hoàn hảo, lỗi nằm ở lớp hiển thị.
-    \item \textbf{Xử lý làm tròn số:} AI chỉ ra định dạng dấu phẩy tiếng Việt khiến Looker làm tròn số. Em đã vào \textit{Kiểu (Style)} $\rightarrow$ \textit{Số liệu chính} và ép \textit{Độ chính xác thập phân} thành 3.
-    \item \textbf{Xử lý xung đột kiểu dữ liệu:} Em phát hiện \texttt{sentiment\_score} bị gán \textit{Tổng số (Sum)} trong phần nguồn dữ liệu đầu vào dù trong biểu đồ đã chọn phép tính AVG. Em điều chỉnh lại thành \textit{Trung bình (Average)} và tạo lại biểu đồ mới để xóa cache.
+    \item Không sử dụng EC2.
+    \item Không tạo NAT Gateway.
+    \item Lambda có reserved concurrency để giới hạn invocation bất thường.
+    \item API Gateway có throttling rate 100 request/giây và burst 50.
+    \item DynamoDB dùng bảng và GSI trong phạm vi demo nhỏ.
+    \item AWS Budget giới hạn 0.01 USD/tháng với cảnh báo 80\% và 100\%.
 \end{itemize}
 
-\subsubsection{2. Đánh giá nghịch lý Precision = 0 của mô hình BQML}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{5cm}|p{3cm}|}
+\hline
+\textbf{Mục} & \textbf{Giá trị} & \textbf{Bằng chứng} \\
+\hline
+Budget name & \texttt{TaskManager-Budget-0.01} & TODO \\
+\hline
+Monthly budget & 0.01 USD & TODO \\
+\hline
+Alert 80\% & 0.008 USD & TODO \\
+\hline
+Alert 100\% & 0.01 USD & TODO \\
+\hline
+Actual cost & TODO: điền chi phí thực tế từ Billing Dashboard hoặc Cost Explorer & TODO \\
+\hline
+\end{tabular}
+\caption{Bằng chứng kiểm soát chi phí}
+\end{table}
 
-\textbf{1. Các câu lệnh (Prompts) đã sử dụng}
+\subsection{Hạn chế và hướng phát triển}
+
+Một số hạn chế hiện tại:
 
 \begin{itemize}
-    \item \textit{"0.0 0.0 0.758426 0.0 0.55006 0.55199 precision recall accuracy f1\_score log\_loss roc\_acc. Đây là các chỉ số của mô hình bigqueryml."}
-    \item \textit{"Tôi đã cắm chạy thêm từ 1800 records lên 2500 records và precision vẫn là 0."}
-    \item \textit{"Nhận xét gì cho khả năng dự đoán của model, nguyên nhân gì. Code ref model này có mối liên hệ gì giữa các hành vi, feedback, response time không?"}
+    \item Ứng dụng chưa sử dụng custom domain.
+    \item Quá trình triển khai được thực hiện thủ công qua AWS Console nên có thể khó lặp lại chính xác.
+    \item Chưa có pipeline CI/CD tự động.
+    \item Kiểm thử chủ yếu là kiểm thử thủ công qua frontend, curl và AWS Console.
 \end{itemize}
 
-\textbf{2. Vấn đề/Lỗi phát sinh (Issues encountered)}
-
-Sau khi huấn luyện mô hình dự đoán hành vi mua hàng, kết quả \texttt{ML.EVALUATE} cho thấy Precision, Recall bằng 0.0, trong khi Accuracy đạt xấp xỉ 75\%. Dù đã tăng dữ liệu lên xấp xỉ 1800 lên 2500 bản ghi, mô hình vẫn không cải thiện.
-
-\textbf{3. Quá trình phân tích và giải quyết (Troubleshooting \& Resolution)}
+Các hướng cải tiến:
 
 \begin{itemize}
-    \item \textbf{Phân tích hiện tượng:} Ban đầu nghi ngờ do mất cân bằng dữ liệu. Nhưng khi xử lý xong mà ROC AUC vẫn \textasciitilde 0.55, em dùng AI phân tích sâu mã nguồn.
-    \item \textbf{Tìm ra nguyên nhân gốc rễ:} Sau khi đọc code \texttt{log\_simulator.py} trong file yêu cầu đồ án, em thấy các biến (\texttt{response\_time\_ms}, \texttt{feedback}, \texttt{action}) được tạo ra bằng hàm \texttt{random} hoàn toàn độc lập với nhau.
-    \item \textbf{Cách xử lý/Bài học:} Sau khi review với AI, chúng em quyết định giữ nguyên hiện trạng để phản ánh đúng bản chất thuật toán: Machine Learning không thể tìm quy luật từ dữ liệu nhiễu (noise). Bài học là khâu Ingestion và chất lượng dữ liệu đầu vào mang tính quyết định.
+    \item Thêm custom domain và ACM certificate cho CloudFront.
+    \item Bổ sung CI/CD để deploy frontend và Lambda tự động.
+    \item Chuyển cấu hình hạ tầng sang SAM, CloudFormation, Terraform hoặc CDK trong phiên bản sau.
+    \item Thêm kiểm thử tích hợp tự động cho API.
+    \item Mở rộng chức năng tìm kiếm, phân trang và xác thực input.
 \end{itemize}
 
-\subsection{Sản phẩm}
-Link Looker Studio Dashboard: \url{https://datastudio.google.com/s/rwHy3qZs51s}
+\subsection{Kết luận}
+
+Hệ thống đã đáp ứng mục tiêu của đồ án: triển khai ứng dụng web serverless trên AWS, bảo vệ frontend bằng S3 private và CloudFront OAC, bảo vệ API bằng Cognito, đặt Lambda trong private subnet, kết nối DynamoDB qua VPC Gateway Endpoint, áp dụng IAM least privilege, cấu hình monitoring và kiểm soát chi phí bằng AWS Budget. Thiết kế này đảm bảo khả năng tự mở rộng, tính sẵn sàng cao theo dịch vụ managed của AWS và hạn chế tối đa chi phí phát sinh.

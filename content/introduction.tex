@@ -1,5 +1,56 @@
 \section{Giới thiệu}
 
-Đồ án này xây dựng hệ thống phân tích dữ liệu đám mây toàn diện cho một startup truyền thông, nhằm tối ưu hóa việc theo dõi hoạt động website và hành vi khách hàng.
+\subsection{Phạm vi ứng dụng}
 
-Quy trình vận hành bắt đầu từ việc mô phỏng và truyền tải dữ liệu qua lớp thu nạp serverless, kết hợp AI để phân tích feedback người dùng. Toàn bộ dữ liệu được lưu trữ tại BigQuery, phục vụ việc huấn luyện mô hình dự báo (BigQuery ML) và trực quan hóa báo cáo trên Looker Studio.
+Ứng dụng Task Manager hỗ trợ các chức năng chính sau:
+
+\begin{itemize}
+    \item Đăng ký và đăng nhập người dùng thông qua Amazon Cognito.
+    \item Tạo, xem, cập nhật và xóa công việc.
+    \item Lưu trữ dữ liệu công việc bền vững trong Amazon DynamoDB.
+    \item Chỉ cho phép người dùng đã xác thực gọi các API \texttt{/tasks}.
+\end{itemize}
+
+\subsection{Tóm tắt triển khai}
+
+Các điểm triển khai chính của hệ thống:
+
+\begin{itemize}
+    \item Frontend được lưu trong S3 bucket riêng tư và chỉ được phục vụ qua CloudFront.
+    \item CloudFront sử dụng Origin Access Control (OAC) để đọc object từ S3.
+    \item Backend sử dụng API Gateway REST API stage \texttt{prod} và bốn Lambda function riêng biệt.
+    \item Runtime của Lambda là Node.js 20.x.
+    \item Lambda được đặt trong private subnet của custom VPC \texttt{TaskManagerVPC}.
+    \item Lambda truy cập DynamoDB thông qua DynamoDB Gateway VPC Endpoint.
+    \item API được bảo vệ bằng Cognito Authorizer.
+    \item IAM được cấu hình theo nguyên tắc least privilege với bốn role riêng cho bốn Lambda function.
+    \item CloudWatch Dashboard, CloudWatch Alarms, SNS và AWS Budget được cấu hình để giám sát và kiểm soát chi phí.
+\end{itemize}
+
+\subsection{Thông tin endpoint}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Thông tin} & \textbf{Giá trị} \\
+\hline
+AWS Region & \texttt{ap-southeast-1} \\
+\hline
+CloudFront URL & \begin{minipage}[t]{9cm}
+\texttt{https://d1ikfum6io2m2d.}\\
+\texttt{cloudfront.net/}
+\end{minipage} \\
+\hline
+API Gateway URL & \begin{minipage}[t]{9cm}
+\texttt{https://x8hr2ow73f.execute-api.}\\
+\texttt{ap-southeast-1.amazonaws.com/prod/}
+\end{minipage} \\
+\hline
+S3 bucket frontend & \begin{minipage}[t]{9cm}
+\texttt{https://taskmanager-ui-hieunguyen.s3.}\\
+\texttt{ap-southeast-1.amazonaws.com/index.html}
+\end{minipage} \\
+\hline
+\end{tabular}
+\caption{Thông tin triển khai thực tế của hệ thống}
+\end{table}

@@ -1,0 +1,56 @@
+Sample ASCII Architecture Diagram
+=================================
+
++------------------+      HTTPS       +-------------------------+
+| Browser / User   +----------------->| CloudFront CDN + OAC    |
++--------+---------+                  +-----------+-------------+
+         |                                        |
+         | API calls with JWT                     | signed origin request
+         v                                        v
++--------+---------+                  +-----------+-------------+
+| API Gateway REST |                  | Private S3 Bucket       |
+| Stage: prod      |                  | Frontend assets         |
+| Cognito auth     |                  | Block public access     |
++--------+---------+                  +-------------------------+
+         |
+         | validates token
+         v
++--------+---------+
+| Cognito UserPool |
+| + App Client     |
++--------+---------+
+         |
+         | invokes CRUD Lambdas
+         v
++----------------------------------------------------------------+
+| TaskManagerVPC 10.0.0.0/16                                     |
+|                                                                |
+| +---------------------+          +---------------------+        |
+| | PrivateSubnet-AZ1   |          | PrivateSubnet-AZ2   |        |
+| | 10.0.1.0/24         |          | 10.0.2.0/24         |        |
+| +----------+----------+          +----------+----------+        |
+|            |                                |                   |
+|            +------------+-------------------+                   |
+|                         |                                       |
+|          +--------------v---------------+                       |
+|          | 4 Lambda functions            |                      |
+|          | Get / Create / Update / Delete|                      |
+|          | SG: outbound 443 to DDB PL    |                      |
+|          +--------------+---------------+                       |
+|                         |                                       |
+|                         v                                       |
+|          +--------------+---------------+                       |
+|          | DynamoDB Gateway Endpoint     |                      |
+|          | route: pl-xxxx -> vpce-xxxx   |                      |
+|          +--------------+---------------+                       |
++-------------------------+--------------------------------------+
+                          |
+                          | AWS private backbone
+                          v
+          +---------------+----------------+
+          | DynamoDB TasksTable            |
+          | GSI: userId-index              |
+          +--------------------------------+
+
+  IAM: one role per Lambda     Monitoring: CloudWatch + SNS
+  Cost control: AWS Budget     No EC2, no public S3, no NAT Gateway

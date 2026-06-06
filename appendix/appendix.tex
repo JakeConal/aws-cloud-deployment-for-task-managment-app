@@ -1,6 +1,66 @@
 \section{Phụ lục}
+
+\subsection{Checklist bằng chứng bắt buộc}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{2cm}|p{9cm}|p{2cm}|}
+\hline
+\textbf{ID} & \textbf{Bằng chứng} & \textbf{Đã có} \\
+\hline
+SE-1 & S3 Block Public Access bật cả bốn tùy chọn. & TODO \\
+\hline
+SE-2 & Direct S3 access trả về \texttt{403 Forbidden}. & TODO \\
+\hline
+SE-3 & CloudFront access trả về \texttt{200 OK}. & TODO \\
+\hline
+SE-4 & OAC gắn vào CloudFront distribution. & TODO \\
+\hline
+CO-1 & Cognito User Pool đã tạo. & TODO \\
+\hline
+CO-2 & API Gateway Cognito Authorizer được cấu hình. & TODO \\
+\hline
+CO-3 & API không có token trả về \texttt{401 Unauthorized}. & TODO \\
+\hline
+CO-4 & API có token hợp lệ trả về \texttt{200 OK}. & TODO \\
+\hline
+NE-1 & DynamoDB VPC Endpoint status \texttt{Available}. & TODO \\
+\hline
+NE-2 & Lambda VpcConfig có private subnets và security group. & TODO \\
+\hline
+NE-3 & Route table có route \texttt{pl-xxxxxx -> vpce-xxxxxxxx}. & TODO \\
+\hline
+NE-4 & Không có NAT Gateway đang hoạt động. & TODO \\
+\hline
+NE-5 & CloudWatch log cho thấy Lambda gọi DynamoDB thành công. & TODO \\
+\hline
+IM-1 & Bốn IAM role riêng cho bốn Lambda function. & TODO \\
+\hline
+IM-2 & IAM policy dùng ARN cụ thể của DynamoDB table/index, không dùng resource \texttt{*}. & TODO \\
+\hline
+IM-3 & Mỗi Lambda function gắn đúng role tương ứng. & TODO \\
+\hline
+\end{tabular}
+\caption{Checklist bằng chứng SE/CO/NE/IM}
+\end{table}
+
+\subsection{Prompt GenAI}
+
+Vì nhóm có sử dụng GenAI để hỗ trợ lập dàn ý và viết báo cáo, cần nộp kèm lịch sử prompt hoặc screenshot đoạn hội thoại theo yêu cầu đồ án.
+
 \begin{itemize}
-\item Template này \textbf{không phải} là template chính thức của Khoa Công nghệ thông tin - Trường Đại học Khoa học Tự nhiên.
-\item Các hình ảnh, bảng biểu, thuật toán trong template chỉ mang tính chất ví dụ.
-\item Nhóm tác giả phân phối \textbf{miễn phí} template này \href{https://github.com/khongsomeo/hcmus-unofficial-report-template}{trên GitHub} và \href{https://www.overleaf.com/latex/templates/hcmus-report-template/zyrhmsxynwqs}{trên Overleaf} với \href{https://github.com/khongsomeo/hcmus-unofficial-report-template/blob/main/LICENSE}{Giấy phép GNU General Public License v3.0}. Nhóm tác giả không chịu trách nhiệm với các bản phân phối không nằm trong hai kênh phân phối chính thức nêu trên.
+    \item TODO: Chèn hoặc đính kèm lịch sử prompt đã sử dụng.
+    \item TODO: Chèn screenshot hội thoại nếu nộp dưới dạng hình ảnh.
 \end{itemize}
+
+\subsection{Ghi chú source code}
+
+Source code cần nộp kèm gồm:
+
+\begin{itemize}
+    \item Frontend: HTML, CSS, JavaScript.
+    \item Backend: mã Node.js 20.x cho bốn Lambda handler.
+    \item README mô tả cách chạy local và cách deploy lên AWS.
+\end{itemize}
+
+Không có source code IaC vì hạ tầng được triển khai thủ công bằng AWS Console.
