@@ -1,0 +1,49 @@
+\section{Evaluation}
+
+\subsection{Bảng đánh giá theo rubric}
+
+Bảng sau tổng hợp tiêu chí đánh giá theo rubric trong file yêu cầu đồ án \texttt{PROJECT2\_VI.pdf} và cách hệ thống đã đáp ứng từng tiêu chí.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{1.7cm}|p{6.2cm}|p{3cm}|}
+\hline
+\textbf{Hạng mục} & \textbf{Tỷ trọng} & \textbf{Yêu cầu điểm tối đa} & \textbf{Minh chứng trong báo cáo} \\
+\hline
+Chức năng & 20\% & Bốn thao tác CRUD hoạt động đúng. Frontend, backend và DynamoDB tích hợp chính xác. Bộ lọc theo độ ưu tiên và ngày hết hạn hoạt động. & Bảng kiểm thử chức năng, demo frontend, dữ liệu trong DynamoDB. \\
+\hline
+Triển khai Đám mây & 25\% & S3 private và CloudFront OAC được xác minh. Lambda trong VPC có DynamoDB Endpoint. IAM least privilege với role riêng. Cognito xác thực đúng. CORS chỉ cho phép CloudFront domain. & SE-1 đến SE-4, NE-1 đến NE-3, IM-1 đến IM-3, CO-1 đến CO-4. \\
+\hline
+Hiểu biết Kiến trúc & 20\% & Giải thích được luồng request, VPC Endpoint, lý do thay thế NAT Gateway, Lambda auto-scaling, API Gateway load balancing, CloudFront caching và OAC. & Phần kiến trúc hệ thống, luồng request, serverless auto scaling, CDN/OAC và VPC Endpoint. \\
+\hline
+Giám sát & 10\% & CloudWatch Dashboard có ít nhất 5 widget với dữ liệu thực. Hai alarm được tạo. Có log request thành công, log request lỗi và SNS email notification. & Dashboard, alarms, log CloudWatch và SNS. \\
+\hline
+Hiệu quả Chi phí & 15\% & Không có NAT Gateway. Lambda reserved concurrency được giới hạn phù hợp. AWS Budget 0.01 USD được cấu hình. Tổng chi phí bằng 0 hoặc gần 0. & NE-4, reserved concurrency, bảng chi phí và AWS Budget. \\
+\hline
+Tài liệu & 10\% & Báo cáo giải thích đủ bốn khái niệm chính, sơ đồ kiến trúc đủ thành phần, đủ 16 mục bằng chứng SE/NE/IM/CO, có prompt GenAI nếu sử dụng, và nộp source code. & Báo cáo kỹ thuật, sơ đồ kiến trúc, phụ lục checklist, prompt GenAI và source code. \\
+\hline
+\textbf{Tổng cộng} & \textbf{100\%} & \multicolumn{2}{p{9.2cm}|}{Hệ thống được đánh giá dựa trên chức năng, bảo mật triển khai, hiểu biết kiến trúc, giám sát, chi phí và tài liệu nộp kèm.} \\
+\hline
+\end{tabular}
+\caption{Bảng đánh giá theo rubric của đồ án}
+\end{table}
+
+\subsection{Phân chia công việc}
+
+Bảng sau mô tả phân chia công việc trong nhóm. Tỷ lệ đóng góp được chia đều do các thành viên cùng tham gia triển khai, kiểm thử và hoàn thiện báo cáo.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{2.5cm}|p{6.2cm}|p{1.7cm}|}
+\hline
+\textbf{Thành viên} & \textbf{MSSV} & \textbf{Công việc chính} & \textbf{Đóng góp} \\
+\hline
+Nguyễn Minh Tú & 23120101 & Thiết kế frontend, cấu hình CloudFront/S3 private, kiểm thử truy cập frontend, hỗ trợ thu thập bằng chứng SE. & 33.3\% \\
+\hline
+Nguyễn Xuân Duy & 23120121 & Triển khai API Gateway, Cognito Authorizer, các Lambda function CRUD, kiểm thử xác thực JWT và endpoint API. & 33.3\% \\
+\hline
+Nguyễn Minh Hiếu & 23120124 & Thiết lập VPC, private subnets, DynamoDB Gateway Endpoint, DynamoDB table/GSI, IAM roles, CloudWatch, AWS Budget và tổng hợp báo cáo. & 33.3\% \\
+\hline
+\end{tabular}
+\caption{Bảng phân chia công việc nhóm}
+\end{table}
