@@ -12,6 +12,14 @@
     \end{figure}
 }
 
+\newcommand{\evidencefigureplain}[1]{
+    \begin{figure}[H]
+    \centering
+    \evidencebox{#1}
+    \caption{Ảnh/output #1}
+    \end{figure}
+}
+
 \subsection{Bằng chứng bảo mật frontend}
 
 \begin{table}[H]
@@ -116,54 +124,54 @@ IM-3 & Mỗi Lambda function gắn đúng IAM role tương ứng. \\
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|p{2.2cm}|p{4.2cm}|p{7cm}|}
+\begin{tabular}{|p{5cm}|p{8cm}|}
 \hline
-\textbf{ID} & \textbf{Mục} & \textbf{Yêu cầu} \\
+\textbf{Mục} & \textbf{Yêu cầu} \\
 \hline
-MON-1 & CloudWatch Dashboard & Tối thiểu 5 widget có dữ liệu thực. \\
+CloudWatch Dashboard & Tối thiểu 5 widget có dữ liệu thực. \\
 \hline
-MON-2 & \texttt{Lambda-Error-Alarm} & Errors lớn hơn 10 trong 5 phút. \\
+\texttt{Lambda-Error-Alarm} & Errors lớn hơn 10 trong 5 phút. \\
 \hline
-MON-3 & \texttt{API-5xx-Alarm} & 5XXError lớn hơn 5 trong 5 phút. \\
+\texttt{API-5xx-Alarm} & 5XXError lớn hơn 5 trong 5 phút. \\
 \hline
-MON-4 & Log request thành công & Có \texttt{REPORT}, status \texttt{200}, duration, billed duration, memory used. \\
+Log request thành công & Có \texttt{REPORT}, status \texttt{200}, duration, billed duration, memory used. \\
 \hline
-MON-5 & Log request lỗi & Có lỗi validation hoặc stack trace khi input không hợp lệ. \\
+Log request lỗi & Có lỗi validation hoặc stack trace khi input không hợp lệ. \\
 \hline
 \end{tabular}
 \caption{Bằng chứng monitoring và logging}
 \end{table}
 
-\evidencefigure{MON-1}
-\evidencefigure{MON-2}
-\evidencefigure{MON-3}
-\evidencefigure{MON-4}
-\evidencefigure{MON-5}
+\evidencefigureplain{CloudWatch Dashboard}
+\evidencefigureplain{Lambda Error Alarm}
+\evidencefigureplain{API 5xx Alarm}
+\evidencefigureplain{Log request thành công}
+\evidencefigureplain{Log request lỗi}
 
 \subsection{Chi phí}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|p{2.2cm}|p{5cm}|p{6cm}|}
+\begin{tabular}{|p{5cm}|p{8cm}|}
 \hline
-\textbf{ID} & \textbf{Mục} & \textbf{Giá trị} \\
+\textbf{Mục} & \textbf{Giá trị} \\
 \hline
-COST-1 & Budget name & \texttt{TaskManager-Budget-0.01} \\
+Budget name & \texttt{TaskManager-Budget-0.01} \\
 \hline
-COST-2 & Monthly budget & 0.01 USD \\
+Monthly budget & 0.01 USD \\
 \hline
-COST-3 & Alert 80\% & 0.008 USD \\
+Alert 80\% & 0.008 USD \\
 \hline
-COST-4 & Alert 100\% & 0.01 USD \\
+Alert 100\% & 0.01 USD \\
 \hline
-COST-5 & Actual cost & TODO: điền chi phí thực tế từ Billing Dashboard hoặc Cost Explorer \\
+Actual cost & TODO: điền chi phí thực tế từ Billing Dashboard hoặc Cost Explorer \\
 \hline
 \end{tabular}
 \caption{Bằng chứng kiểm soát chi phí}
 \end{table}
 
-\evidencefigure{COST-1}
-\evidencefigure{COST-2}
-\evidencefigure{COST-3}
-\evidencefigure{COST-4}
-\evidencefigure{COST-5}
+\evidencefigureplain{AWS Budget}
+\evidencefigureplain{Budget monthly limit}
+\evidencefigureplain{Budget alert 80\%}
+\evidencefigureplain{Budget alert 100\%}
+\evidencefigureplain{Cost Explorer hoặc Billing Dashboard}

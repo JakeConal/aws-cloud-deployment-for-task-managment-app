@@ -29,36 +29,18 @@ Luồng tạo công việc sau khi người dùng đăng nhập:
 
 Hệ thống không cần Application Load Balancer vì API Gateway đã đóng vai trò entry point HTTPS và định tuyến request đến Lambda. Khi có nhiều request đồng thời, Lambda tự động tạo thêm execution environment để xử lý song song. Khi không có request, Lambda có thể giảm về không instance đang chạy, giúp giảm chi phí vận hành.
 
-Để tránh runaway cost và bảo vệ giới hạn Free Tier, reserved concurrency được cấu hình như sau:
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{5cm}|p{3cm}|p{5cm}|}
-\hline
-\textbf{Lambda function} & \textbf{Reserved concurrency} & \textbf{Lý do} \\
-\hline
-\texttt{GetTasksFunction} & 5 & Cho phép nhiều request đọc danh sách song song trong demo. \\
-\hline
-\texttt{CreateTaskFunction} & 2 & Giới hạn thao tác ghi mới để kiểm soát chi phí và lỗi lặp request. \\
-\hline
-\texttt{UpdateTaskFunction} & 2 & Đủ cho demo cập nhật đồng thời, vẫn giới hạn mức ghi. \\
-\hline
-\texttt{DeleteTaskFunction} & 1 & Xóa task là thao tác ít dùng hơn và nên được giới hạn chặt. \\
-\hline
-\end{tabular}
-\caption{Reserved concurrency của các Lambda function}
-\end{table}
-
-Nếu reserved concurrency đặt quá thấp, người dùng có thể gặp throttling dù hệ thống vẫn còn khả năng xử lý. Nếu đặt quá cao, lỗi vòng lặp hoặc lượng request bất thường có thể tạo nhiều invocation và làm tăng chi phí.
+Trong phiên bản triển khai hiện tại, nhóm chưa cấu hình reserved concurrency cho các Lambda function. Lý do là hệ thống còn nhỏ, phục vụ mục đích demo và chưa có dữ liệu tải thực tế từ người dùng để xác định ngưỡng concurrency hợp lý. Nếu đặt reserved concurrency dựa trên phỏng đoán, giá trị quá thấp có thể gây throttling không cần thiết, còn giá trị quá cao không tạo thêm lợi ích kiểm soát chi phí so với quy mô hiện tại. Vì vậy, nhóm ưu tiên dùng API Gateway throttling, CloudWatch monitoring và AWS Budget để kiểm soát lưu lượng, lỗi và chi phí trước. Reserved concurrency sẽ được cấu hình sau khi có baseline về số request, thời gian xử lý và mức concurrency thực tế.
 
 \subsection{CDN và Origin Access Control}
 
 CloudFront giúp giảm độ trễ bằng cách cache static assets tại edge location gần người dùng. Khi cache hit, CloudFront trả nội dung mà không cần truy cập lại S3. Khi cache miss, CloudFront lấy nội dung từ origin là S3 bucket.
 
-S3 bucket bắt buộc private vì frontend không được truy cập qua URL S3 trực tiếp. Origin Access Control là cơ chế cho phép CloudFront ký request đến S3 và bucket policy chỉ cho phép CloudFront service principal đọc object từ distribution hợp lệ. Nhờ đó, CloudFront là public entry point duy nhất của frontend.
+S3 bucket phải private để người dùng không thể truy cập trực tiếp file bằng URL S3. Nếu S3 public, người dùng có thể bypass CloudFront, làm mất các kiểm soát như HTTPS, caching và policy truy cập qua CDN.
+
+OAC cho phép CloudFront đọc file từ S3 private bucket một cách an toàn. Bucket policy chỉ cho phép CloudFront distribution hợp lệ truy cập object. Vì vậy, người dùng phải đi qua CloudFront để mở frontend, còn truy cập trực tiếp S3 sẽ bị từ chối với \texttt{403 Forbidden} hoặc \texttt{AccessDenied}.
 
 \subsection{VPC Endpoint}
 
 Lambda được gắn VpcConfig vào hai private subnet để backend chạy trong mạng riêng. Vì private subnet không có NAT Gateway, Lambda không thể gọi DynamoDB qua internet công cộng. DynamoDB Gateway Endpoint giải quyết vấn đề này bằng cách thêm route đến DynamoDB prefix list trong route table của private subnet.
 
-Traffic từ Lambda đến DynamoDB đi qua AWS private backbone theo đường: Lambda trong private subnet $\rightarrow$ route table $\rightarrow$ DynamoDB Gateway Endpoint $\rightarrow$ DynamoDB. Cách này an toàn hơn và không phát sinh chi phí cố định như NAT Gateway.
+Traffic từ Lambda đến DynamoDB đi qua AWS private backbone theo đường: Lambda trong private subnet $\rightarrow$ route table $\rightarrow$ DynamoDB Gateway Endpoint $\rightarrow$ DynamoDB. Cách này chi phí cố định như NAT Gateway.
