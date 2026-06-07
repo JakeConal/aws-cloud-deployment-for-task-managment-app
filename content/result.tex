@@ -228,3 +228,41 @@ IM-3 & Mỗi Lambda function gắn đúng IAM role tương ứng. \\
 
 \subsection{Chi phí}
 
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{5cm}|p{7cm}|}
+\hline
+\textbf{Mục} & \textbf{Giá trị} \\
+\hline
+Budget name & \texttt{TaskManager-Budget-0.01} \\
+\hline
+Monthly budget & 0.01 USD \\
+\hline
+Alert 80\% & 0.008 USD \\
+\hline
+Alert 100\% & 0.01 USD \\
+\hline
+Actual cost & 0.00 USD \\
+\hline
+\end{tabular}
+\caption{Thông tin cấu hình AWS Budget}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/Budget_01.png}
+\caption{AWS Budget \texttt{TaskManager-Budget-0.01} với hạn mức 0.01 USD/tháng và hai ngưỡng cảnh báo 80\% và 100\%}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/Budget_02.png}
+\caption{Lịch sử chi phí và mức ngân sách theo từng tháng}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/Budget_03.png}
+\caption{Billing Dashboard cho thấy tổng chi phí hiện tại bằng 0.00 USD}
+\end{figure}
