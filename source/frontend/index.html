@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Serverless Task Manager</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-alt: #eef5f2;
+      --text: #1f2933;
+      --muted: #667085;
+      --line: #d6dde5;
+      --primary: #186b63;
+      --primary-dark: #0f4f49;
+      --danger: #b42318;
+      --warning: #b54708;
+      --ok: #087443;
+      --shadow: 0 12px 28px rgba(25, 39, 52, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      color: var(--primary);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-outline {
+      border-color: var(--line);
+      background: transparent;
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      background: var(--bg);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border-color: transparent;
+    }
+
+    .btn-danger:hover {
+      background: #fef3f2;
+    }
+
+    .auth-box {
+      max-width: 400px;
+      margin: 4rem auto;
+      background: var(--surface);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .auth-tab {
+      padding: 0.5rem 0;
+      background: none;
+      border: none;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .auth-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.375rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.625rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+      .grid {
+        grid-template-columns: 4fr 7fr;
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid var(--line);
+    }
+
+    .message {
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      background: #fef3f2;
+      color: var(--danger);
+      border: 1px solid #fee4e2;
+    }
+
+    .message.success {
+      background: #edfcf2;
+      color: var(--ok);
+      border: 1px solid #d3f8df;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .task-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      background: var(--surface);
+      transition: transform 0.1s;
+    }
+
+    .task-item:hover {
+      transform: translateY(-1px);
+    }
+
+    .task-content {
+      flex: 1;
+    }
+
+    .task-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .task-item.done .task-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .task-desc {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .pill-high { background: #fef3f2; color: var(--danger); }
+    .pill-medium { background: #fff7ed; color: var(--warning); }
+    .pill-low { background: #f0f9ff; color: #026aa2; }
+
+    .pill-done { background: #edfcf2; color: var(--ok); }
+    .pill-progress { background: #eff8ff; color: #175cd3; }
+    .pill-pending { background: #f8f9fa; color: var(--muted); }
+
+    .task-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="auth-view" class="auth-box hidden">
+      <div class="auth-tabs">
+        <button id="tab-signin" class="auth-tab active" onclick="switchAuthTab('signin')">Sign In</button>
+        <button id="tab-signup" class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+        <button id="tab-confirm" class="auth-tab" onclick="switchAuthTab('confirm')">Confirm Account</button>
+      </div>
+
+      <div id="auth-msg" class="message"></div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div id="field-email" class="form-group">
+          <label for="auth-email">Email address</label>
+          <input type="email" id="auth-email" class="form-control" placeholder="you@example.com">
+        </div>
+
+        <div id="field-password" class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" class="form-control" placeholder="••••••••">
+        </div>
+
+        <div id="field-code" class="form-group hidden">
+          <label for="auth-code">Verification Code</label>
+          <input type="text" id="auth-code" class="form-control" placeholder="123456">
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Sign In</button>
+      </form>
+    </div>
+
+    <div id="dashboard-view" class="hidden">
+      <header>
+        <h1>Serverless Task Manager</h1>
+        <div class="user-info">
+          <span id="user-display-email"></span>
+          <button class="btn btn-outline" onclick="signOut()">Sign out</button>
+        </div>
+      </header>
+
+      <div id="dashboard-msg" class="message"></div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>New task</h3>
+          <form id="task-form" onsubmit="handleCreateTask(event)" style="margin-top: 1rem;">
+            <div class="form-group">
+              <label for="task-title">Title *</label>
+              <input type="text" id="task-title" class="form-control" required placeholder="What needs to be done?">
+            </div>
+            <div class="form-group">
+              <label for="task-desc">Description</label>
+              <textarea id="task-desc" class="form-control" rows="3" placeholder="Add some details..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="task-priority">Priority</label>
+              <select id="task-priority" class="form-control">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="task-status">Status</label>
+              <select id="task-status" class="form-control">
+                <option value="pending" selected>Pending</option>
+                <option value="in_progress">In progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="task-duedate">Due date</label>
+              <input type="date" id="task-duedate" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create task</button>
+          </form>
+        </div>
+
+        <div>
+          <div class="list-header">
+            <h2 id="list-count-title">Tasks (0)</h2>
+            <button class="btn btn-outline" onclick="fetchTasks()">Refresh</button>
+          </div>
+          <div id="task-list" class="task-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const AWS_CONFIG = {
+      region: "ap-southeast-1",
+      userPoolId: "ap-southeast-1_5pKjclrdG",
+      clientId: "2mho2mfb1p4o2cjsv6glkfh3tq",
+      apiUrl: "https://x8hr2ow73f.execute-api.ap-southeast-1.amazonaws.com/prod"
+    };
+
+    const state = {
+      config: AWS_CONFIG,
+      currentAuthTab: "signin",
+      session: loadJson("tm_session", null),
+      tasks: []
+    };
+
+    const els = {
+      authView: document.getElementById("auth-view"),
+      dashboardView: document.getElementById("dashboard-view"),
+      authTabSignin: document.getElementById("tab-signin"),
+      authTabSignup: document.getElementById("tab-signup"),
+      authTabConfirm: document.getElementById("tab-confirm"),
+      fieldEmail: document.getElementById("field-email"),
+      fieldPassword: document.getElementById("field-password"),
+      fieldCode: document.getElementById("field-code"),
+      authSubmitBtn: document.getElementById("auth-submit-btn"),
+      authEmail: document.getElementById("auth-email"),
+      authPassword: document.getElementById("auth-password"),
+      authCode: document.getElementById("auth-code"),
+      authMsg: document.getElementById("auth-msg"),
+      dashboardMsg: document.getElementById("dashboard-msg"),
+      userDisplayEmail: document.getElementById("user-display-email"),
+      taskForm: document.getElementById("task-form"),
+      taskTitle: document.getElementById("task-title"),
+      taskDesc: document.getElementById("task-desc"),
+      taskPriority: document.getElementById("task-priority"),
+      taskStatus: document.getElementById("task-status"),
+      taskDuedate: document.getElementById("task-duedate"),
+      taskList: document.getElementById("task-list"),
+      listCountTitle: document.getElementById("list-count-title")
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initView();
+    });
+
+    function initView() {
+      if (state.session?.idToken) {
+        els.authView.classList.add("hidden");
+        els.dashboardView.classList.remove("hidden");
+        els.userDisplayEmail.textContent = state.session.email;
+        fetchTasks();
+      } else {
+        els.dashboardView.classList.add("hidden");
+        els.authView.classList.remove("hidden");
+        switchAuthTab(state.currentAuthTab);
+      }
+    }
+
+    function switchAuthTab(tab) {
+      state.currentAuthTab = tab;
+      els.authMsg.classList.remove("show");
+      
+      [els.authTabSignin, els.authTabSignup, els.authTabConfirm].forEach(t => t.classList.remove("active"));
+      els.fieldEmail.classList.remove("hidden");
+      els.fieldPassword.classList.remove("hidden");
+      els.fieldCode.classList.add("hidden");
+
+      if (tab === "signin") {
+        els.authTabSignin.classList.add("active");
+        els.authSubmitBtn.textContent = "Sign In";
+      } else if (tab === "signup") {
+        els.authTabSignup.classList.add("active");
+        els.authSubmitBtn.textContent = "Sign Up";
+      } else if (tab === "confirm") {
+        els.authTabConfirm.classList.add("active");
+        els.fieldPassword.classList.add("hidden");
+        els.fieldCode.classList.remove("hidden");
+        els.authSubmitBtn.textContent = "Confirm Account";
+      }
+    }
+
+    async function cognitoRequest(target, body) {
+      const res = await fetch(`https://cognito-idp.${state.config.region}.amazonaws.com/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-amz-json-1.1",
+          "X-Amz-Target": `AWSCognitoIdentityProviderService.${target}`
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.__type || "Cognito error");
+      }
+      return data;
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      els.authMsg.classList.remove("show");
+
+      const email = els.authEmail.value.trim();
+      const password = els.authPassword.value;
+      const code = els.authCode.value.trim();
+      const username = getCognitoUsername(email);
+
+      if (!email) return;
+
+      try {
+        if (state.currentAuthTab === "signup") {
+          if (!password) return;
+          await cognitoRequest("SignUp", {
+            ClientId: state.config.clientId,
+            Username: username,
+            Password: password,
+            UserAttributes: [{ Name: "email", Value: email }]
+          });
+          showMessage("Registration successful! Check your email for a verification code.", "success");
+          switchAuthTab("confirm");
+          els.authCode.focus();
+        } 
+        else if (state.currentAuthTab === "confirm") {
+          if (!code) return;
+          await cognitoRequest("ConfirmSignUp", {
+            ClientId: state.config.clientId,
+            Username: username,
+            ConfirmationCode: code
+          });
+          showMessage("Account successfully confirmed! You can now log in.", "success");
+          switchAuthTab("signin");
+          els.authPassword.value = "";
+        } 
+        else if (state.currentAuthTab === "signin") {
+          if (!password) return;
+          const data = await cognitoRequest("InitiateAuth", {
+            AuthFlow: "USER_PASSWORD_AUTH",
+            ClientId: state.config.clientId,
+            AuthParameters: {
+              USERNAME: username,
+              PASSWORD: password
+            }
+          });
+
+          if (data.ChallengeName) {
+            throw new Error(`Authentication identity requires challenge clearance: ${data.ChallengeName}`);
+          }
+
+          state.session = {
+            idToken: data.AuthenticationResult.IdToken,
+            accessToken: data.AuthenticationResult.AccessToken,
+            refreshToken: data.AuthenticationResult.RefreshToken,
+            email: email,
+            expiresAt: Date.now() + (data.AuthenticationResult.ExpiresIn * 1000)
+          };
+          localStorage.setItem("tm_session", JSON.stringify(state.session));
+          initView();
+        }
+      } catch (err) {
+        els.authMsg.textContent = err.message;
+        els.authMsg.className = "message show error";
+      }
+    }
+
+    function signOut() {
+      state.session = null;
+      localStorage.removeItem("tm_session");
+      state.tasks = [];
+      els.authEmail.value = "";
+      els.authPassword.value = "";
+      els.authCode.value = "";
+      initView();
+    }
+
+    async function apiRequest(path, method = "GET", body = null) {
+      requireConfig();
+      requireSession();
+
+      const options = {
+        method,
+        headers: {
+          "Authorization": state.session.idToken,
+          "Content-Type": "application/json"
+        }
+      };
+
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+
+      const res = await fetch(`${state.config.apiUrl}${path}`, options);
+      
+      if (res.status === 401 || res.status === 403) {
+        signOut();
+        throw new Error("Session expired or invalid credentials. Plase log in again.");
+      }
+
+      const text = await res.text();
+      let data = {};
+      if (text) {
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || `API error (${res.status})`);
+      }
+
+      return data;
+    }
+
+    async function fetchTasks() {
+      els.dashboardMsg.classList.remove("show");
+      try {
+        const data = await apiRequest("/tasks");
+        state.tasks = Array.isArray(data) ? data : [];
+        renderTasks();
+      } catch (err) {
+        showError(err);
+      }
+    }
+
+    async function handleCreateTask(e) {
+      e.preventDefault();
+      els.dashboardMsg.classList.remove("show");
+
+      const body = {
+        title: els.taskTitle.value.trim(),
+        description: els.taskDesc.value.trim(),
+        priority: els.taskPriority.value,
+        status: els.taskStatus.value,
+        dueDate: els.taskDuedate.value
+      };
+
+      try {
+        const newTask = await apiRequest("/tasks", "POST", body);
+        state.tasks.push(newTask);
+        renderTasks();
+        els.taskForm.reset();
+        showMessage("Task created successfully!", "success");
+      } catch (err) {
+        showError(err);
+      }
+    }
+
+    async function toggleTaskStatus(taskId, currentStatus) {
+      els.dashboardMsg.classList.remove("show");
+      const nextStatus = currentStatus === "done" ? "pending" : "done";
+      
+      try {
+        const updated = await apiRequest(`/tasks/${taskId}`, "PUT", { status: nextStatus });
+        state.tasks = state.tasks.map(t => t.taskId === taskId ? { ...t, ...updated } : t);
+        renderTasks();
+      } catch (err) {
+        showError(err);
+      }
+    }
+
+    async function deleteTask(taskId) {
+      if (!confirm("Are you sure you want to delete this task?")) return;
+      els.dashboardMsg.classList.remove("show");
+
+      try {
+        await apiRequest(`/tasks/${taskId}`, "DELETE");
+        state.tasks = state.tasks.filter(t => t.taskId !== taskId);
+        renderTasks();
+        showMessage("Task deleted successfully.", "success");
+      } catch (err) {
+        showError(err);
+      }
+    }
+
+    function renderTasks() {
+      els.listCountTitle.textContent = `Tasks (${state.tasks.length})`;
+
+      if (state.tasks.length === 0) {
+        els.taskList.innerHTML = `
+          <div class="empty-state">
+            <p>No tasks yet. Create your first task using the form on the left!</p>
+          </div>
+        `;
+        return;
+      }
+
+      els.taskList.innerHTML = state.tasks
+        .slice()
+        .sort((a, b) => {
+          const dateB = String(b.createdAt || b.Createdat || "");
+          const dateA = String(a.createdAt || a.Createdat || "");
+          return dateB.localeCompare(dateA);
+        })
+        .map(task => {
+          const isDone = task.status === "done";
+          return `
+            <div class="task-item ${isDone ? "done" : ""}">
+              <div class="task-content">
+                <div class="task-title">${escapeHtml(task.title)}</div>
+                ${task.description ? `<div class="task-desc">${escapeHtml(task.description)}</div>` : ""}
+                <div class="task-meta">
+                  <span class="pill pill-${task.priority || "medium"}">${task.priority || "medium"}</span>
+                  <span class="pill pill-${(task.status || "pending").replace("_", "")}">${(task.status || "pending").replace("_", " ")}</span>
+                  ${task.dueDate ? `<span class="pill" style="background:#f0f1f3;color:var(--text);">Due ${escapeHtml(task.dueDate)}</span>` : ""}
+                </div>
+              </div>
+              <div class="task-actions">
+                <button class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.8rem;" onclick="toggleTaskStatus('${task.taskId}', '${task.status}')">
+                  ${isDone ? "Mark Pending" : "Mark Done"}
+                </button>
+                <button class="btn btn-danger" style="padding:0.25rem 0.5rem;font-size:0.8rem;" onclick="deleteTask('${task.taskId}')">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function requireConfig() {
+      if (!state.config.apiUrl || !state.config.region || !state.config.userPoolId || !state.config.clientId) {
+        throw new Error("AWS configuration values are incomplete.");
+      }
+    }
+
+    function requireSession() {
+      if (!state.session?.idToken) {
+        throw new Error("Authentication credential missing. Please sign in again.");
+      }
+      if (state.session.expiresAt && Date.now() > state.session.expiresAt) {
+        signOut();
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+    }
+
+    function getCognitoUsername(email) {
+      return email.replace(/[@.]/g, "-");
+    }
+
+    function showMessage(text, type) {
+      const box = state.session ? els.dashboardMsg : els.authMsg;
+      box.textContent = text;
+      box.className = `message show ${type || ""}`;
+    }
+
+    function showError(error) {
+      showMessage(error.message || "An unhandled operational exception occurred.", "error");
+    }
+
+    function loadJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
