@@ -1,51 +1,5 @@
 \section{Kết quả và bằng chứng}
 
-\subsection{Kết quả chức năng}
-
-Hệ thống đã triển khai đầy đủ các chức năng chính của ứng dụng Task Manager:
-
-\begin{itemize}
-    \item Người dùng có thể đăng ký và đăng nhập bằng Cognito.
-    \item Frontend truy cập được qua CloudFront.
-    \item Direct S3 URL bị từ chối, chứng minh S3 bucket không public.
-    \item Bốn endpoint CRUD hoạt động qua API Gateway REST API.
-    \item API yêu cầu JWT token hợp lệ cho các endpoint \texttt{/tasks}.
-    \item Dữ liệu công việc được lưu và truy vấn từ DynamoDB.
-    \item Lambda chạy trong private subnet và truy cập DynamoDB qua VPC Gateway Endpoint.
-\end{itemize}
-
-\subsection{Bảng kiểm thử chức năng}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{3.5cm}|p{4cm}|p{3.5cm}|p{2cm}|}
-\hline
-\textbf{Test case} & \textbf{Input} & \textbf{Kết quả kỳ vọng} & \textbf{Trạng thái} \\
-\hline
-Đăng ký user & Thông tin user mới & Cognito tạo user thành công & TODO \\
-\hline
-Đăng nhập & Username/password hợp lệ & Nhận JWT token & TODO \\
-\hline
-Tạo task & \texttt{POST /tasks} kèm token & Task được ghi vào DynamoDB & TODO \\
-\hline
-Lấy danh sách task & \texttt{GET /tasks} kèm token & Trả về JSON danh sách task & TODO \\
-\hline
-Cập nhật task & \texttt{PUT /tasks/\{id\}} & Task được cập nhật & TODO \\
-\hline
-Xóa task & \texttt{DELETE /tasks/\{id\}} & Task bị xóa khỏi DynamoDB & TODO \\
-\hline
-Lọc priority & Chọn priority trên frontend & Danh sách được lọc đúng & TODO \\
-\hline
-Lọc due date & Chọn ngày hết hạn & Danh sách được lọc đúng & TODO \\
-\hline
-API không có token & \texttt{curl} không có header Authorization & Trả về \texttt{401 Unauthorized} & TODO \\
-\hline
-API có token hợp lệ & \texttt{curl} có JWT token & Trả về \texttt{200 OK} & TODO \\
-\hline
-\end{tabular}
-\caption{Bảng kiểm thử chức năng}
-\end{table}
-
 \subsection{Bằng chứng bảo mật frontend}
 
 \begin{table}[H]
@@ -182,28 +136,3 @@ Actual cost & TODO: điền chi phí thực tế từ Billing Dashboard hoặc C
 \end{tabular}
 \caption{Bằng chứng kiểm soát chi phí}
 \end{table}
-
-\subsection{Hạn chế và hướng phát triển}
-
-Một số hạn chế hiện tại:
-
-\begin{itemize}
-    \item Ứng dụng chưa sử dụng custom domain.
-    \item Quá trình triển khai được thực hiện thủ công qua AWS Console nên có thể khó lặp lại chính xác.
-    \item Chưa có pipeline CI/CD tự động.
-    \item Kiểm thử chủ yếu là kiểm thử thủ công qua frontend, curl và AWS Console.
-\end{itemize}
-
-Các hướng cải tiến:
-
-\begin{itemize}
-    \item Thêm custom domain và ACM certificate cho CloudFront.
-    \item Bổ sung CI/CD để deploy frontend và Lambda tự động.
-    \item Chuyển cấu hình hạ tầng sang SAM, CloudFormation, Terraform hoặc CDK trong phiên bản sau.
-    \item Thêm kiểm thử tích hợp tự động cho API.
-    \item Mở rộng chức năng tìm kiếm, phân trang và xác thực input.
-\end{itemize}
-
-\subsection{Kết luận}
-
-Hệ thống đã đáp ứng mục tiêu của đồ án: triển khai ứng dụng web serverless trên AWS, bảo vệ frontend bằng S3 private và CloudFront OAC, bảo vệ API bằng Cognito, đặt Lambda trong private subnet, kết nối DynamoDB qua VPC Gateway Endpoint, áp dụng IAM least privilege, cấu hình monitoring và kiểm soát chi phí bằng AWS Budget. Thiết kế này đảm bảo khả năng tự mở rộng, tính sẵn sàng cao theo dịch vụ managed của AWS và hạn chế tối đa chi phí phát sinh.
