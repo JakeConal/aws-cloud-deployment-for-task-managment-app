@@ -1,78 +1,12 @@
 \section{Kiến trúc hệ thống}
 
+\subsection{Sơ đồ kiến trúc}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{img/aws.drawio.pdf}
     \caption{Sơ đồ kiến trúc serverless của ứng dụng Task Manager}
 \end{figure}
-
-\subsection{Các thành phần chính}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{4cm}|p{9cm}|}
-\hline
-\textbf{Thành phần} & \textbf{Vai trò} \\
-\hline
-Amazon S3 & Lưu trữ các file frontend. Bucket được đặt private, bật toàn bộ Block Public Access và không bật Static Website Hosting. \\
-\hline
-Amazon CloudFront & CDN duy nhất phục vụ frontend cho người dùng. CloudFront lấy file từ S3 thông qua OAC. \\
-\hline
-Origin Access Control & Cho phép CloudFront truy cập S3 private bucket một cách an toàn, không cần public bucket. \\
-\hline
-Amazon Cognito & Quản lý đăng ký, đăng nhập và phát hành JWT token cho frontend. \\
-\hline
-API Gateway REST API & Cung cấp HTTPS endpoint, định tuyến request đến Lambda, kiểm tra JWT bằng Cognito Authorizer và áp dụng throttling. \\
-\hline
-AWS Lambda & Chạy backend serverless bằng Node.js 20.x. Bốn Lambda function tách riêng tương ứng với bốn thao tác CRUD. \\
-\hline
-Amazon VPC & Cô lập tầng compute trong custom VPC \texttt{TaskManagerVPC} với hai private subnet. \\
-\hline
-DynamoDB Gateway Endpoint & Định tuyến traffic từ Lambda đến DynamoDB qua AWS private backbone, không cần NAT Gateway. \\
-\hline
-Amazon DynamoDB & Lưu trữ dữ liệu công việc trong bảng \texttt{TasksTable}, có GSI \texttt{userId-index}. \\
-\hline
-IAM & Cấp quyền least privilege bằng các role riêng cho từng Lambda function. \\
-\hline
-CloudWatch, SNS, AWS Budget & Giám sát metric, log, cảnh báo lỗi qua email và kiểm soát chi phí hàng tháng. \\
-\hline
-\end{tabular}
-\caption{Vai trò của các dịch vụ AWS trong hệ thống}
-\end{table}
-
-\subsection{Resource chính}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{5cm}|p{8cm}|}
-\hline
-\textbf{Loại resource} & \textbf{Tên đã sử dụng} \\
-\hline
-VPC & \texttt{TaskManagerVPC} \\
-\hline
-Private subnet AZ-1 & \texttt{PrivateSubnet-AZ1}, CIDR \texttt{10.0.1.0/24}, AZ \texttt{ap-southeast-1a} \\
-\hline
-Private subnet AZ-2 & \texttt{PrivateSubnet-AZ2}, CIDR \texttt{10.0.2.0/24}, AZ \texttt{ap-southeast-1b} \\
-\hline
-Security group & \texttt{LambdaSecurityGroup} \\
-\hline
-DynamoDB table & \texttt{TasksTable} \\
-\hline
-DynamoDB GSI & \texttt{userId-index} \\
-\hline
-Cognito User Pool & \texttt{TaskManagerUserPool} \\
-\hline
-Cognito App Client & \texttt{WebAppClient} \\
-\hline
-API Gateway REST API & \texttt{TaskManagerAPI} \\
-\hline
-CloudWatch Dashboard & \texttt{TaskManager-Dashboard} \\
-\hline
-AWS Budget & \texttt{TaskManager-Budget-0.01} \\
-\hline
-\end{tabular}
-\caption{Các resource chính của hệ thống}
-\end{table}
 
 \subsection{Luồng request}
 
@@ -81,7 +15,7 @@ Khi người dùng mở ứng dụng, trình duyệt truy cập CloudFront domai
 Luồng tạo công việc sau khi người dùng đăng nhập:
 
 \begin{enumerate}
-    \item Người dùng đăng nhập bằng Cognito và nhận JWT token.
+    \item Người dùng đăng nhập bằng Cognito và nhận Token ID.
     \item Frontend gửi request HTTPS đến API Gateway endpoint \texttt{/tasks}, kèm header \texttt{Authorization}.
     \item API Gateway dùng Cognito Authorizer để xác thực JWT token.
     \item Nếu token hợp lệ, API Gateway gọi Lambda function tương ứng.
