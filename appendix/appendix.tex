@@ -1,66 +1,19 @@
 \section{Phụ lục}
 
-\subsection{Checklist bằng chứng bắt buộc}
+\begin{enumerate}
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 28 tháng 5 năm 2026, prompt: \textit{``Read the PROJECT2\_VI.pdf create a step-by-step instruction that follows the requirements in that pdf file. Ask me a series of yes/no questions that helps you improve your accuracy.''}; được sử dụng để tạo file hướng dẫn triển khai AWS theo từng bước dựa trên yêu cầu của \texttt{PROJECT2\_VI.pdf}; AI tổng hợp các bước cấu hình chính như networking, DynamoDB, IAM, Lambda, Cognito, API Gateway, S3/CloudFront, monitoring và cost control, nhóm rà soát lại để đảm bảo hướng dẫn phù hợp với cách triển khai thủ công bằng AWS Console.
 
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{2cm}|p{9cm}|p{2cm}|}
-\hline
-\textbf{ID} & \textbf{Bằng chứng} & \textbf{Đã có} \\
-\hline
-SE-1 & S3 Block Public Access bật cả bốn tùy chọn. & TODO \\
-\hline
-SE-2 & Direct S3 access trả về \texttt{403 Forbidden}. & TODO \\
-\hline
-SE-3 & CloudFront access trả về \texttt{200 OK}. & TODO \\
-\hline
-SE-4 & OAC gắn vào CloudFront distribution. & TODO \\
-\hline
-CO-1 & Cognito User Pool đã tạo. & TODO \\
-\hline
-CO-2 & API Gateway Cognito Authorizer được cấu hình. & TODO \\
-\hline
-CO-3 & API không có token trả về \texttt{401 Unauthorized}. & TODO \\
-\hline
-CO-4 & API có token hợp lệ trả về \texttt{200 OK}. & TODO \\
-\hline
-NE-1 & DynamoDB VPC Endpoint status \texttt{Available}. & TODO \\
-\hline
-NE-2 & Lambda VpcConfig có private subnets và security group. & TODO \\
-\hline
-NE-3 & Route table có route \texttt{pl-xxxxxx -> vpce-xxxxxxxx}. & TODO \\
-\hline
-NE-4 & Không có NAT Gateway đang hoạt động. & TODO \\
-\hline
-NE-5 & CloudWatch log cho thấy Lambda gọi DynamoDB thành công. & TODO \\
-\hline
-IM-1 & Bốn IAM role riêng cho bốn Lambda function. & TODO \\
-\hline
-IM-2 & IAM policy dùng ARN cụ thể của DynamoDB table/index, không dùng resource \texttt{*}. & TODO \\
-\hline
-IM-3 & Mỗi Lambda function gắn đúng role tương ứng. & TODO \\
-\hline
-\end{tabular}
-\caption{Checklist bằng chứng SE/CO/NE/IM}
-\end{table}
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 28 tháng 5 năm 2026, prompt: \textit{``add objective and result for each step in the instruction file''}; được sử dụng để bổ sung mục tiêu và kết quả mong đợi cho từng bước trong file hướng dẫn triển khai; AI giúp làm rõ lý do thực hiện từng bước và trạng thái cần đạt được sau bước đó.
 
-\subsection{Prompt GenAI}
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 5 tháng 6 năm 2026, prompt: \textit{``Design a RESTful backend for a Task Manager using AWS Lambda and DynamoDB?''}; được sử dụng để thiết kế backend RESTful cho ứng dụng Task Manager, bao gồm các endpoint CRUD, cấu trúc Lambda handler, cách đọc/ghi DynamoDB và định dạng JSON response; nhóm điều chỉnh lại thiết kế để phù hợp với yêu cầu bốn Lambda function riêng biệt trong đồ án.
 
-Vì nhóm có sử dụng GenAI để hỗ trợ lập dàn ý và viết báo cáo, cần nộp kèm lịch sử prompt hoặc screenshot đoạn hội thoại theo yêu cầu đồ án.
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 6 tháng 6 năm 2026, prompt: \textit{``Implement frontend for this application.''}; được sử dụng để xây dựng frontend cho ứng dụng quản lý công việc; nhóm chỉnh sửa lại cấu hình API/Cognito theo deployment thực tế.
 
-\begin{itemize}
-    \item TODO: Chèn hoặc đính kèm lịch sử prompt đã sử dụng.
-    \item TODO: Chèn screenshot hội thoại nếu nộp dưới dạng hình ảnh.
-\end{itemize}
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 6 tháng 6 năm 2026, prompt: \textit{``I am getting errors when calling my Lambda API from my S3-hosted frontend using API Gateway. How to fix this?''}; được sử dụng để hỗ trợ phân tích lỗi khi frontend gọi API Gateway, các vấn đề gặp phải là CORS, sai invoke URL; nhóm áp dụng các gợi ý phù hợp để kiểm tra lại cấu hình API Gateway và frontend.
 
-\subsection{Ghi chú source code}
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 7 tháng 6 năm 2026, prompt: \textit{``Read the PROJECT2\_VI.pdf to understand the project. I already done with the aws deployment. I need to write a report follow the requirements in the PROJECT2\_VI.pdf. Ignore the current latex content. Create an outline for the report. You can ask me a series of yes/no question to help you with your writing.''}; được sử dụng để phân tích yêu cầu trong file \texttt{PROJECT2\_VI.pdf}, xác định các mục bắt buộc của báo cáo như kiến trúc, bảo mật, networking, IAM, Cognito, monitoring, cost control và evidence checklist; AI đề xuất dàn ý ban đầu, nhóm điều chỉnh lại theo triển khai AWS thực tế và các bằng chứng đã thu thập.
 
-Source code cần nộp kèm gồm:
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 7 tháng 6 năm 2026, prompt: \textit{``Why should I use Amazon CloudFront in front of an S3 bucket instead of accessing S3 directly?''}; được sử dụng để hiểu rõ lý do đặt CloudFront trước S3, bao gồm CDN caching, HTTPS, OAC, private S3 bucket và việc ngăn người dùng truy cập trực tiếp S3; nhóm dùng nội dung này để giải thích phần CDN/OAC trong báo cáo.
 
-\begin{itemize}
-    \item Frontend: HTML, CSS, JavaScript.
-    \item Backend: mã Node.js 20.x cho bốn Lambda handler.
-    \item README mô tả cách chạy local và cách deploy lên AWS.
-\end{itemize}
-
-Không có source code IaC vì hạ tầng được triển khai thủ công bằng AWS Console.
+    \item Codex. GPT-5.5. OpenAI, truy cập ngày 7 tháng 6 năm 2026, prompt: \textit{``Explain the trade-offs of Reserved Concurrency in AWS Lambda and what happens when the account concurrency limit is reached?''}; được sử dụng để tìm hiểu ưu/nhược điểm của reserved concurrency, ảnh hưởng khi đặt quá thấp hoặc quá cao, và hành vi throttling khi đạt giới hạn concurrency của tài khoản; nhóm dùng nội dung này để viết phần giải thích vì sao chưa cấu hình reserved concurrency khi chưa có baseline tải thực tế.
+\end{enumerate}
